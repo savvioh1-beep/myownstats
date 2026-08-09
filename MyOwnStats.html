@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>MyOwnStats</title>
 <meta name="description" content="A personal life operating system — daily check-ins, focus areas, and long-run progress.">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'none';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src 'self' https://fonts.gstatic.com;
+  img-src 'self' data:;
+  connect-src 'self' https://*.supabase.co wss://*.supabase.co;
+  manifest-src 'self' blob:;
+  form-action 'none';
+  base-uri 'none';
+  frame-ancestors 'none';
+  object-src 'none'
+">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0c10">
 <meta name="mobile-web-app-capable" content="yes">
@@ -16,7 +29,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -3144,12 +3157,40 @@ async function signInWithPassword() {
 /*  Run MOS.setPassword('your-new-password') in the console while signed in to
     add or change the backup password. Deliberately not a button: it is set
     once and then only used when email is unavailable.                       */
+// Length alone is a poor test: 'password12' passes it. These checks catch the
+// patterns that actually get broken — common words, keyboard runs, repetition,
+// and anything containing the account's own email.
+const WEAK_PATTERNS = [
+  'password','qwerty','123456','abc123','letmein','welcome','admin','iloveyou',
+  'monkey','dragon','football','baseball','sunshine','princess','trustno1',
+  'myownstats','rotterdam','marathon','changeme','secret'
+];
+
+function passwordProblem(pw, email) {
+  const s = String(pw || '');
+  if (s.length < 12) return 'Use at least 12 characters. A phrase of a few unrelated words is stronger than a short complex one.';
+  if (/^\s|\s$/.test(s)) return 'Remove the leading or trailing space — it is easy to lose track of.';
+  const low = s.toLowerCase();
+  const hit = WEAK_PATTERNS.find(w => low.includes(w));
+  if (hit) return `Avoid "${hit}" — it appears in every password-cracking list, including ones aimed at this app.`;
+  if (email) {
+    const local = String(email).split('@')[0].toLowerCase();
+    if (local.length > 2 && low.includes(local)) return 'Do not include your email address in your password.';
+  }
+  if (/^[0-9]+$/.test(s)) return 'Digits alone are guessed very quickly. Add words.';
+  if (/^(.)\1+$/.test(s)) return 'That is a single repeated character.';
+  if (/(0123|1234|2345|3456|4567|5678|6789|abcd|bcde|cdef|qwer|wert|erty|asdf|sdfg|zxcv)/.test(low))
+    return 'Avoid keyboard or number runs — they are the first thing tried.';
+  if (new Set(s).size < 5) return 'Too few distinct characters. Use more variety.';
+  return null;
+}
+
 async function setAccountPassword(pw) {
   if (!sb) { console.log('Cloud sync is not set up on this device.'); return false; }
-  if (!pw || String(pw).length < 10) {
-    console.log('Choose a password of at least 10 characters, and store it in your password manager.');
-    return false;
-  }
+  let email = null;
+  try { const { data } = await sb.auth.getSession(); email = data.session && data.session.user.email; } catch (e) {}
+  const problem = passwordProblem(pw, email);
+  if (problem) { console.log(problem); return false; }
   const { error } = await sb.auth.updateUser({ password: String(pw) });
   if (error) { console.log('Could not set the password: ' + error.message); return false; }
   console.log('Password set. Save it in your password manager \u2014 it is your way in if email is unavailable.');
