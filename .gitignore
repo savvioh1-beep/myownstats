@@ -1,0 +1,12 @@
+# macOS clutter
+.DS_Store
+._*
+
+# Backups — these contain personal notes and must never be public
+*.json
+MOS-backups/
+old/
+
+# Editor and system files
+.vscode/
+Thumbs.db
