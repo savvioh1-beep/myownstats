@@ -15,7 +15,6 @@
   manifest-src 'self' blob:;
   form-action 'none';
   base-uri 'none';
-  frame-ancestors 'none';
   object-src 'none'
 ">
 <meta name="color-scheme" content="dark">
@@ -787,6 +786,47 @@ button, input, select, textarea { font-family: inherit; }
       Never paste the <strong>secret</strong> key here &mdash; it isn&rsquo;t needed, and it belongs on a server.
       <br><br>
       <a href="#" onclick="skipCloud();return false;" style="color:var(--muted)">Use this device only, without syncing</a>
+    </div>
+  </div>
+</div>
+
+<!-- SECOND FACTOR -->
+<div class="gate hidden" id="mfa">
+  <div class="gate-inner">
+    <div class="gate-mark">One more step</div>
+    <div class="gate-sub">Enter the six-digit code from your authenticator app.</div>
+    <div class="gate-lbl">Authentication code</div>
+    <input class="gate-inp" id="mfa-code" type="text" inputmode="numeric" autocomplete="one-time-code"
+           maxlength="6" placeholder="000000" style="font-family:var(--font-mono);letter-spacing:4px;font-size:18px"
+           onkeydown="if(event.key==='Enter')submitMfaCode()">
+    <button class="gate-btn" id="mfa-btn" onclick="submitMfaCode()">Verify</button>
+    <div class="gate-msg" id="mfa-msg"></div>
+    <div class="gate-foot">
+      Codes change every 30 seconds. If yours is rejected repeatedly, check your device clock is set automatically.
+      <br><br>
+      <a href="#" onclick="signOut();return false;" style="color:var(--muted)">Sign in as someone else</a>
+    </div>
+  </div>
+</div>
+
+<!-- ENROL SECOND FACTOR -->
+<div class="gate hidden" id="mfa-setup">
+  <div class="gate-inner">
+    <div class="gate-mark">Set up two-step sign-in</div>
+    <div class="gate-sub">Scan this with an authenticator app, or copy the key into your password manager.</div>
+    <div id="mfa-qr" style="background:#fff;padding:10px;border-radius:8px;width:200px;margin:0 auto 14px"></div>
+    <div class="gate-lbl">Setup key</div>
+    <input class="gate-inp" id="mfa-secret" readonly onclick="this.select()"
+           style="font-family:var(--font-mono);font-size:12px">
+    <div class="gate-lbl">Enter the code it shows</div>
+    <input class="gate-inp" id="mfa-enrol-code" type="text" inputmode="numeric" maxlength="6" placeholder="000000"
+           style="font-family:var(--font-mono);letter-spacing:4px" onkeydown="if(event.key==='Enter')confirmMfaEnrol()">
+    <button class="gate-btn" onclick="confirmMfaEnrol()">Confirm</button>
+    <div class="gate-msg" id="mfa-setup-msg"></div>
+    <div class="gate-foot">
+      Store the setup key in your password manager as well as your phone. It is the only way back in if the phone is lost.
+      <br><br>
+      <a href="#" onclick="cancelMfaEnrol();return false;" style="color:var(--muted)">Cancel</a>
     </div>
   </div>
 </div>
@@ -3065,6 +3105,128 @@ function showSetup() {
   if (inp) inp.focus();
 }
 
+// ── SECOND FACTOR (TOTP) ────────────────────────────────────────────────────
+/*  Note on where this is enforced: checking MFA here in the browser alone
+    would be decoration — anyone holding the password could bypass MOS and
+    query the database directly. Real enforcement is the database policy
+    requiring aal2, which this screen exists to satisfy. Enrol first, confirm
+    it works, and only then tighten the policy, or you lock yourself out.   */
+let _enrolFactorId = null;
+
+function mfaMsg(text, kind) {
+  const el = document.getElementById('mfa-msg');
+  el.className = 'gate-msg' + (kind ? ' ' + kind : '');
+  el.textContent = text;
+}
+
+async function needsSecondFactor() {
+  try {
+    const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (error || !data) return false;
+    return data.nextLevel === 'aal2' && data.currentLevel !== 'aal2';
+  } catch (e) { return false; }
+}
+
+function showMfa() {
+  document.getElementById('gate').classList.add('hidden');
+  document.getElementById('mfa').classList.remove('hidden');
+  const inp = document.getElementById('mfa-code');
+  if (inp) { inp.value = ''; inp.focus(); }
+}
+
+async function submitMfaCode() {
+  const code = String(document.getElementById('mfa-code').value || '').replace(/\s/g, '');
+  if (!/^[0-9]{6}$/.test(code)) { mfaMsg('Enter the six digits shown in your app.', 'err'); return; }
+  const btn = document.getElementById('mfa-btn');
+  btn.disabled = true; mfaMsg('Checking\u2026');
+  try {
+    const { data: factors, error: fErr } = await sb.auth.mfa.listFactors();
+    if (fErr) throw fErr;
+    const factor = (factors.totp || []).find(f => f.status === 'verified');
+    if (!factor) throw new Error('No verified authenticator is set up on this account.');
+    const { error } = await sb.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
+    if (error) throw error;
+    mfaMsg('Verified.', 'ok');
+    document.getElementById('mfa').classList.add('hidden');
+    await startApp();
+  } catch (e) {
+    const m = ((e && e.message) || '').toLowerCase();
+    mfaMsg(m.includes('invalid') || m.includes('incorrect')
+      ? 'That code was not accepted. Codes expire after 30 seconds \u2014 wait for the next one and try again.'
+      : ((e && e.message) || 'Could not verify the code.'), 'err');
+    btn.disabled = false;
+  }
+}
+
+// Run MOS.setupMFA() in the console while signed in.
+async function setupMFA() {
+  if (!sb) { console.log('Cloud sync is not set up on this device.'); return false; }
+  try {
+    const { data: existing } = await sb.auth.mfa.listFactors();
+    const verified = (existing.totp || []).find(f => f.status === 'verified');
+    if (verified) { console.log('An authenticator is already set up. Use MOS.removeMFA() first to replace it.'); return false; }
+    // Clear any half-finished attempt, which would otherwise block a new one.
+    for (const f of (existing.all || [])) {
+      if (f.status !== 'verified') { try { await sb.auth.mfa.unenroll({ factorId: f.id }); } catch (e) {} }
+    }
+    const { data, error } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'MyOwnStats' });
+    if (error) throw error;
+    _enrolFactorId = data.id;
+    document.getElementById('mfa-qr').innerHTML = data.totp.qr_code || '';
+    document.getElementById('mfa-secret').value = data.totp.secret || '';
+    document.getElementById('mfa-setup').classList.remove('hidden');
+    document.getElementById('mfa-enrol-code').focus();
+    console.log('Scan the code on screen, then enter the six digits to confirm.');
+    return true;
+  } catch (e) {
+    console.log('Could not start setup: ' + ((e && e.message) || 'unknown error'));
+    return false;
+  }
+}
+
+async function confirmMfaEnrol() {
+  const el = document.getElementById('mfa-setup-msg');
+  const code = String(document.getElementById('mfa-enrol-code').value || '').replace(/\s/g, '');
+  if (!/^[0-9]{6}$/.test(code)) { el.className = 'gate-msg err'; el.textContent = 'Enter the six digits shown in your app.'; return; }
+  el.className = 'gate-msg'; el.textContent = 'Checking\u2026';
+  try {
+    const { error } = await sb.auth.mfa.challengeAndVerify({ factorId: _enrolFactorId, code });
+    if (error) throw error;
+    el.className = 'gate-msg ok';
+    el.textContent = 'Two-step sign-in is on. Save the setup key in your password manager before closing this.';
+    toast('Two-step sign-in enabled.');
+    setTimeout(() => document.getElementById('mfa-setup').classList.add('hidden'), 4000);
+  } catch (e) {
+    el.className = 'gate-msg err';
+    el.textContent = ((e && e.message) || 'That code was not accepted.') + ' Codes expire after 30 seconds.';
+  }
+}
+
+function cancelMfaEnrol() {
+  if (_enrolFactorId) { try { sb.auth.mfa.unenroll({ factorId: _enrolFactorId }); } catch (e) {} }
+  _enrolFactorId = null;
+  document.getElementById('mfa-setup').classList.add('hidden');
+}
+
+async function removeMFA() {
+  if (!sb) return false;
+  if (!confirm('Turn off two-step sign-in?\n\nDo this only if the database policy does not require it \u2014 otherwise you will be locked out.')) return false;
+  const { data } = await sb.auth.mfa.listFactors();
+  for (const f of (data.all || [])) { try { await sb.auth.mfa.unenroll({ factorId: f.id }); } catch (e) {} }
+  console.log('Two-step sign-in removed.');
+  return true;
+}
+
+async function mfaStatus() {
+  if (!sb) { console.log('Cloud sync is not set up on this device.'); return; }
+  const { data } = await sb.auth.mfa.listFactors();
+  const verified = (data.totp || []).filter(f => f.status === 'verified');
+  const { data: aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+  console.log('Authenticators set up: ' + verified.length);
+  console.log('This session: ' + (aal ? aal.currentLevel : 'unknown') + '  (required: ' + (aal ? aal.nextLevel : 'unknown') + ')');
+  return { factors: verified.length, level: aal && aal.currentLevel };
+}
+
 // ── AUTH ────────────────────────────────────────────────────────────────────
 let _appStarted = false;
 
@@ -3253,14 +3415,17 @@ async function boot() {
 
   // A magic-link click returns here with a token in the URL; the client picks
   // it up and fires SIGNED_IN, which is what actually starts the app.
-  sb.auth.onAuthStateChange((event, session) => {
-    if (session && !_appStarted) startApp();
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (session && !_appStarted) {
+      if (await needsSecondFactor()) showMfa(); else startApp();
+    }
     if (event === 'SIGNED_OUT') location.reload();
   });
 
   const { data } = await sb.auth.getSession();
-  if (data.session) await startApp();
-  else showGate();
+  if (!data.session) { showGate(); return; }
+  if (await needsSecondFactor()) showMfa();
+  else await startApp();
 }
 boot();
 
@@ -3274,6 +3439,9 @@ window.MOS = {
   get cloud() { return CLOUD_CONFIGURED; },
   reconnect: forgetCloudConfig,
   setPassword: setAccountPassword,
+  setupMFA: setupMFA,
+  removeMFA: removeMFA,
+  mfaStatus: mfaStatus,
   version: SCHEMA_VERSION,
   export: exportData,
   test() {
