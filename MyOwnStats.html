@@ -2133,10 +2133,13 @@ function renderWeekSummary() {
   const pcts = weekKeys.map(k=>getDayPct(k)).filter(p=>p!==null);
   const avgScore = pcts.length?Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length):null;
 
-  // Marathon km this week
+  // Marathon km this week. Match on the same calendar-day keys used for every
+  // other figure in this panel. `new Date('2026-08-14')` reads the string as
+  // UTC midnight, which shifts the window by the local offset and could count
+  // a run into the wrong week — the bug the 2 August date pass removed
+  // everywhere else.
   const mar = getMarData();
-  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
-  const weekKm = (mar.runs||[]).filter(r=>new Date(r.date)>=weekAgo).reduce((a,r)=>a+r.km,0);
+  const weekKm = (mar.runs||[]).filter(r=>weekKeys.includes(r.date)).reduce((a,r)=>a+r.km,0);
 
   // Per-area performance this week — find best and worst area
   const areaScores = {};
@@ -2652,6 +2655,36 @@ function showCalDetail(ds) {
   </div>`;
 }
 
+/*  Single source of truth for the calendar's rating rows.
+
+    Both the first render and the rebuild after a rest-day toggle go through
+    here, so the two can no longer drift apart. The rebuild path used to write
+    its own copy of this markup and omitted role, tabindex, aria-pressed,
+    aria-label and the key handler — so toggling rest day on and then off
+    silently stripped keyboard and screen-reader support from every dot, and
+    left calDotSel() writing aria-pressed onto elements with no role.
+
+    The two callers read from different places (saved ratings on first render,
+    in-progress ratings on rebuild), which is why `ratings` is a parameter
+    rather than being looked up in here.                                     */
+function calAreaRowsHTML(areas, ds, ratings) {
+  let rows = '';
+  areas.forEach(area => {
+    const sel = (ratings || {})[area.id] || 0;
+    rows += `<div class="area-row" style="margin-bottom:8px">
+      <div class="area-lbl" style="font-size:13px;color:var(--muted);min-width:148px">${esc(area.title)}</div>
+      <div class="dot-row">
+        ${[1,2,3].map(v=>`<div class="dot${sel===v?' s'+v:''}" id="cd-${area.id}-${v}" role="button" tabindex="0" aria-pressed="${sel===v}" aria-label="${escAttr(area.title)}: rate ${v} of 3" onclick="calDotSel('${area.id}',${v},'${ds}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();calDotSel('${area.id}',${v},'${ds}')}" style="cursor:pointer">${v}</div>`).join('')}
+      </div>
+    </div>`;
+  });
+  return rows;
+}
+
+function calRestMsgHTML() {
+  return `<div style="font-size:12px;color:var(--muted);background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 12px;line-height:1.5">Rest day — no area scoring. Just log mood and notes if you want.</div>`;
+}
+
 function showCalLogForm(ds, date, wrap, isEdit=false) {
   const existing = DB.checkins[ds] || {};
   const isRest = existing.restDay || false;
@@ -2676,18 +2709,8 @@ function showCalLogForm(ds, date, wrap, isEdit=false) {
     <button class="mood-btn" onclick="calGoodDaySel(null,'${ds}')" style="padding:6px 10px">Skip</button>`;
 
   function buildAreaRows(restDay) {
-    if(restDay) return `<div style="font-size:12px;color:var(--muted);background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 12px;line-height:1.5">Rest day — no area scoring. Just log mood and notes if you want.</div>`;
-    let rows = '';
-    activeAreas.forEach(area => {
-      const saved = existing.ratings ? (existing.ratings[area.id] || 0) : 0;
-      rows += `<div class="area-row" style="margin-bottom:8px">
-        <div class="area-lbl" style="font-size:13px;color:var(--muted);min-width:148px">${esc(area.title)}</div>
-        <div class="dot-row">
-          ${[1,2,3].map(v=>`<div class="dot${saved===v?' s'+v:''}" id="cd-${area.id}-${v}" role="button" tabindex="0" aria-pressed="${saved===v}" aria-label="${escAttr(area.title)}: rate ${v} of 3" onclick="calDotSel('${area.id}',${v},'${ds}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();calDotSel('${area.id}',${v},'${ds}')}" style="cursor:pointer">${v}</div>`).join('')}
-        </div>
-      </div>`;
-    });
-    return rows;
+    if(restDay) return calRestMsgHTML();
+    return calAreaRowsHTML(activeAreas, ds, existing.ratings);
   }
 
   wrap.innerHTML=`<div class="cal-detail glass">
@@ -2746,22 +2769,11 @@ function calRestToggle(ds) {
       // Save current ratings before clearing, so we can restore if user toggles back
       window._calRSaved[ds] = {...(window._calR[ds]||{})};
       window._calR[ds] = {};
-      areaRows.innerHTML = `<div style="font-size:12px;color:var(--muted);background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 12px;line-height:1.5">Rest day — no area scoring. Just log mood and notes if you want.</div>`;
+      areaRows.innerHTML = calRestMsgHTML();
     } else {
       // Restore previously entered ratings (not just saved DB ones)
       window._calR[ds] = {...(window._calRSaved[ds]||{})};
-      const activeAreas = getActive(ds);
-      let rows = '';
-      activeAreas.forEach(area => {
-        const prev = (window._calR[ds]||{})[area.id] || 0;
-        rows += `<div class="area-row" style="margin-bottom:8px">
-          <div class="area-lbl" style="font-size:13px;color:var(--muted);min-width:148px">${esc(area.title)}</div>
-          <div class="dot-row">
-            ${[1,2,3].map(v=>`<div class="dot${prev===v?' s'+v:''}" id="cd-${area.id}-${v}" onclick="calDotSel('${area.id}',${v},'${ds}')" style="cursor:pointer">${v}</div>`).join('')}
-          </div>
-        </div>`;
-      });
-      areaRows.innerHTML = rows;
+      areaRows.innerHTML = calAreaRowsHTML(getActive(ds), ds, window._calR[ds]);
     }
   }
 }
