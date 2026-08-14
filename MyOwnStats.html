@@ -1014,6 +1014,29 @@ const cloudAdapter = {
       const { data, error } = await sb.from('mos_state').select('doc').eq('user_id', uid).maybeSingle();
       if (error) throw error;
       const doc = data ? data.doc : null;
+
+      /*  An empty result is ambiguous. It means EITHER "this account has no
+          data yet" OR "the access rules hid the row from this session" — the
+          database reports both as simply no rows. Only the first is safe to
+          act on, because Store.init() responds to nothing-there by building a
+          default database and saving it. So before believing an empty read,
+          rule out the two ways it can lie.                                  */
+      if (!doc) {
+        // 1. A session that has not finished the second step is refused by the
+        //    access rules, and gets back exactly this: no error, no rows.
+        const { data: aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aal && aal.nextLevel && aal.currentLevel !== aal.nextLevel) {
+          throw new Error('Signed in, but the second step is not finished — refusing to read this as an empty account.');
+        }
+        // 2. If this device has synced before, the account demonstrably had
+        //    data at some point, so "empty" is not credible.
+        let mirror = null;
+        try { mirror = localStorage.getItem(MIRROR_KEY); } catch (err) {}
+        if (mirror) {
+          throw new Error('The cloud returned nothing, but this device holds a synced copy — refusing to overwrite it.');
+        }
+      }
+
       if (doc) { try { localStorage.setItem(MIRROR_KEY, JSON.stringify(doc)); } catch (e) {} }
       return doc;
     } catch (e) {
@@ -1059,7 +1082,7 @@ const cloudAdapter = {
     relational tables later, once sync is proven on both devices.               */
 const Store = (function () {
   let adapter = localAdapter;
-  let pending = false, writing = false, lastError = null, savedAt = 0;
+  let pending = false, writing = false, lastError = null, savedAt = 0, loadFailed = false;
   const watchers = [];
 
   function state() {
@@ -1092,11 +1115,18 @@ const Store = (function () {
     get backend() { return adapter.name; },
     async init() {
       let raw = null;
-      try { raw = await adapter.load(); } catch (e) { raw = null; }
+      loadFailed = false;
+      try { raw = await adapter.load(); }
+      catch (e) { raw = null; loadFailed = true; }
       const migrated = migrateDB(raw);
-      if (migrated.changed) { pending = true; await flush(); }
+      /*  Only write back when the load actually succeeded. An account we could
+          not read is not an empty account, and migrateDB() cannot tell the
+          difference — handed nothing, it returns a default database with
+          changed=true, which the old code then saved straight over the top.  */
+      if (migrated.changed && !loadFailed) { pending = true; await flush(); }
       return migrated.db;
     },
+    get loadFailed() { return loadFailed; },
     save() { pending = true; emit(); flush(); },
     async saveNow() { pending = true; return flush(); },
     async retry() { lastError = null; pending = true; emit(); return flush(); },
@@ -3119,12 +3149,18 @@ function mfaMsg(text, kind) {
   el.textContent = text;
 }
 
+/*  Fails CLOSED. If the assurance level cannot be established, assume the
+    second step is still outstanding. Answering "no" when we do not know used
+    to start the app on a session the database will refuse to read from, which
+    then looked exactly like a brand-new empty account. Worst case here is an
+    unnecessary code prompt; the worst case the other way was writing defaults
+    over real history. "Sign in as someone else" on that screen is the way out. */
 async function needsSecondFactor() {
   try {
     const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (error || !data) return false;
+    if (error || !data) return true;
     return data.nextLevel === 'aal2' && data.currentLevel !== 'aal2';
-  } catch (e) { return false; }
+  } catch (e) { return true; }
 }
 
 function showMfa() {
@@ -3391,6 +3427,13 @@ async function startApp() {
   DB = await Store.init();
   _currentDay = todayKey();
   renderAll();
+  /*  If we got here without being able to read stored data, MOS is showing a
+      blank default — say so plainly rather than letting it look like the
+      history vanished. Nothing has been written over it.                    */
+  if (Store.loadFailed) {
+    toast('Could not load your saved data, so this is a blank starting view. Nothing has been written over your history. Reload once you are fully signed in.',
+          { type: 'error', duration: 0 });
+  }
 }
 
 async function boot() {
