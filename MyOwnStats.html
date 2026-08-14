@@ -454,6 +454,48 @@ button, input, select, textarea { font-family: inherit; }
 .run-date { flex: 1; color: var(--dim); }
 .run-del { color: var(--dim); background: none; border: none; cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 4px; }
 .run-del:hover { color: var(--red); }
+/* ── BOTTOM TAB BAR (phones) ─────────────────────────────────────────────────
+   Hidden by default so the desktop layout is untouched. Below 600px it swaps
+   in for the top tabs: same buttons, same handler, just within thumb reach.
+   Deliberately last in the stylesheet so it overrides the earlier responsive
+   blocks at 720 / 520 / 460px rather than racing them.                       */
+.tabbar-bottom { display: none; }
+
+@media (max-width: 600px) {
+  .tabs { display: none; }
+
+  .tabbar-bottom {
+    display: flex;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 150;                     /* under modals (200) and gates (400) */
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 6px 2px calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .btab {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px;
+    min-height: 46px;                 /* keeps the touch target above 44px */
+    padding: 4px 2px;
+    background: none; border: none; cursor: pointer;
+    font-family: var(--font-sans); font-size: 10px; font-weight: 500;
+    letter-spacing: 0.2px;
+    color: var(--muted);
+    transition: color 0.15s ease;
+  }
+  .btab svg { width: 21px; height: 21px; display: block; }
+  .btab.active { color: var(--accent); }
+
+  /* Room for the bar, and lift the toasts clear of it. */
+  .app { padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)); }
+  .toast-wrap { bottom: calc(76px + env(safe-area-inset-bottom)); }
+
+  /* No nav behind a sign-in, MFA or setup screen. */
+  .gate:not(.hidden) ~ .tabbar-bottom { display: none; }
+}
 </style>
 </head>
 <body>
@@ -484,11 +526,11 @@ button, input, select, textarea { font-family: inherit; }
 
   <!-- TABS -->
   <div class="tabs" role="tablist" aria-label="Sections">
-    <button class="tab active" role="tab" aria-selected="true" aria-controls="overview" onclick="switchTab('overview',this)">Overview</button>
-    <button class="tab" role="tab" aria-selected="false" aria-controls="checkin" onclick="switchTab('checkin',this)">Check-in</button>
-    <button class="tab" role="tab" aria-selected="false" aria-controls="progress" onclick="switchTab('progress',this)">Progress</button>
-    <button class="tab" role="tab" aria-selected="false" aria-controls="calendar" onclick="switchTab('calendar',this)">Calendar</button>
-    <button class="tab" role="tab" aria-selected="false" aria-controls="plan" onclick="switchTab('plan',this)">The plan</button>
+    <button class="tab active" role="tab" aria-selected="true" aria-controls="overview" data-tab="overview" onclick="switchTab('overview',this)">Overview</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="checkin" data-tab="checkin" onclick="switchTab('checkin',this)">Check-in</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="progress" data-tab="progress" onclick="switchTab('progress',this)">Progress</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="calendar" data-tab="calendar" onclick="switchTab('calendar',this)">Calendar</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="plan" data-tab="plan" onclick="switchTab('plan',this)">The plan</button>
   </div>
 
   <!-- OVERVIEW -->
@@ -852,6 +894,32 @@ button, input, select, textarea { font-family: inherit; }
     <div class="gate-foot">Your data is stored privately and can only be read by this account.</div>
   </div>
 </div>
+
+<!-- BOTTOM TAB BAR (phones only — see the media query at the end of the stylesheet).
+     Placed after the gates so `.gate:not(.hidden) ~ .tabbar-bottom` can hide it
+     while a sign-in or setup screen is up, with no JS involved. -->
+<nav class="tabbar-bottom" role="tablist" aria-label="Sections">
+  <button class="btab active" role="tab" aria-selected="true" aria-controls="overview" data-tab="overview" onclick="switchTab('overview',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="13" width="4" height="7" rx="1"/><rect x="10" y="8" width="4" height="12" rx="1"/><rect x="16" y="4" width="4" height="16" rx="1"/></svg>
+    <span>Overview</span>
+  </button>
+  <button class="btab" role="tab" aria-selected="false" aria-controls="checkin" data-tab="checkin" onclick="switchTab('checkin',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+    <span>Check-in</span>
+  </button>
+  <button class="btab" role="tab" aria-selected="false" aria-controls="progress" data-tab="progress" onclick="switchTab('progress',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+    <span>Progress</span>
+  </button>
+  <button class="btab" role="tab" aria-selected="false" aria-controls="calendar" data-tab="calendar" onclick="switchTab('calendar',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+    <span>Calendar</span>
+  </button>
+  <button class="btab" role="tab" aria-selected="false" aria-controls="plan" data-tab="plan" onclick="switchTab('plan',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9"/></svg>
+    <span>Plan</span>
+  </button>
+</nav>
 
 <!-- TOASTS -->
 <div class="toast-wrap" id="toast-wrap" role="status" aria-live="polite"></div>
@@ -1426,11 +1494,18 @@ function importData(e) {
 }
 
 // ── TABS ────────────────────────────────────────────────────────────────────
+/*  `btn` is still accepted because 10 inline handlers pass `this`, but it is no
+    longer used to set the active state. Both the top tabs and the phone bottom
+    bar carry data-tab, and the active class is driven off the tab id — so
+    whichever bar you tap, the other cannot end up disagreeing with it.       */
 function switchTab(tab, btn) {
-  document.querySelectorAll('.tab').forEach(t=>{ t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById(tab).classList.add('active');
-  if(btn){ btn.classList.add('active'); btn.setAttribute('aria-selected','true'); }
+  document.querySelectorAll('.tab, .btab').forEach(t=>{
+    const on = t.dataset.tab === tab;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
   if(tab==='overview'){ updateStats(); updateMarathon(); }
   if(tab==='progress') renderProgress();
   if(tab==='calendar'){renderCalendar();renderOnePct();}
