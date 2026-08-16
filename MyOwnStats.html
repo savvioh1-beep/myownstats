@@ -454,6 +454,14 @@ button, input, select, textarea { font-family: inherit; }
 .run-date { flex: 1; color: var(--dim); }
 .run-del { color: var(--dim); background: none; border: none; cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 4px; }
 .run-del:hover { color: var(--red); }
+.banner-act {
+  background: none; border: 1px solid var(--border2); border-radius: 6px;
+  padding: 4px 10px; margin-left: 8px;
+  color: var(--accent); font-size: 11px; font-family: var(--font-sans);
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
+}
+.banner-act:hover { border-color: var(--accent); background: rgba(255,255,255,0.04); }
+
 /* ── BOTTOM TAB BAR (phones) ─────────────────────────────────────────────────
    Hidden by default so the desktop layout is untouched. Below 600px it swaps
    in for the top tabs: same buttons, same handler, just within thumb reach.
@@ -624,7 +632,7 @@ button, input, select, textarea { font-family: inherit; }
 
   <!-- CHECK-IN -->
   <div id="checkin" class="section">
-    <div id="locked-banner" class="locked-banner hidden">✓ Check-in saved for today. Come back tomorrow for a new one.</div>
+    <div id="locked-banner" class="locked-banner hidden"></div>
     <div class="ci-card glass">
       <div class="ci-title">Daily check-in</div>
       <div class="ci-sub">Rate each active area 1–3. Areas marked N/A are off today.</div>
@@ -1373,7 +1381,7 @@ function getDayPct(key) {
   return Math.round((vals.reduce((a,b)=>a+b,0)/(vals.length*3))*100);
 }
 function isRestDay(key) { const c=DB.checkins[key]; return !!(c&&c.restDay); }
-function isLocked() { const c=DB.checkins[todayKey()]; return !!(c&&c.locked); }
+function isLocked() { if(todayUnlocked) return false; const c=DB.checkins[todayKey()]; return !!(c&&c.locked); }
 
 // ── Streaks — one definition, used by every part of the app ────────────────
 function hasCheckin(key) {
@@ -1886,8 +1894,27 @@ function addCard() {
   const days=getSelDays();
   if(!days.length){ toast('Pick at least one active day.', {type:'error'}); return; }
   DB.focus.push({id:uid(),title,status,activeDays:days,tasks:[]});
-  saveDB(); closeModal(); renderFocus();
+  saveDB(); closeModal(); renderFocus(); refreshCheckinAreas();
 }
+/*  Adding, editing or deleting a focus area changes what the check-in form
+    should show. Rebuilding it is only safe when nothing is part-entered:
+    renderCheckin() reloads from saved state and would discard unsaved ratings,
+    mood, note and good-day. So if there is anything pending, leave the form
+    alone and say so rather than quietly wiping it — the new area is one tab
+    switch away regardless.                                                   */
+function refreshCheckinAreas() {
+  const noteEl = document.getElementById('daily-note');
+  const pending =
+    Object.keys(curR).length > 0 ||
+    !!curMood ||
+    curGoodDay !== null ||
+    curRestDay || curWorkDay ||
+    !!(noteEl && noteEl.value.trim());
+
+  if(isLocked() || !pending) { renderCheckin(); return; }
+  toast('Focus areas updated. Save your check-in to see the change there.');
+}
+
 function openEditCard(cid) {
   const card=DB.focus.find(c=>c.id===cid), active=card.activeDays||[0,1,2,3,4,5,6];
   showModal(`<div class="modal-title">Edit focus area</div>
@@ -1903,7 +1930,7 @@ function saveCard(cid) {
   card.title=document.getElementById('m-t').value.trim().slice(0,80)||card.title;
   card.status=document.getElementById('m-s').value.trim().slice(0,120);
   card.activeDays=days;
-  saveDB(); closeModal(); renderFocus();
+  saveDB(); closeModal(); renderFocus(); refreshCheckinAreas();
 }
 function deleteCard(cid) {
   const idx = DB.focus.findIndex(c=>c.id===cid);
@@ -1912,7 +1939,7 @@ function deleteCard(cid) {
   const openTasks = card.tasks.filter(t=>t.s!=='g').length;
   if(!confirm(`Delete "${card.title}"?\n\nIt has ${card.tasks.length} tasks (${openTasks} still open). Past ratings for this area stay in your history.`)) return;
   DB.focus.splice(idx,1);
-  saveDB(); closeModal(); renderFocus();
+  saveDB(); closeModal(); renderFocus(); refreshCheckinAreas();
   undoToast(`Deleted "${card.title}".`, () => {
     DB.focus.splice(Math.min(idx, DB.focus.length), 0, card);
     saveDB(); renderFocus();
@@ -1921,6 +1948,13 @@ function deleteCard(cid) {
 
 // ── CHECK-IN ────────────────────────────────────────────────────────────────
 let curR={}, curMood='', curRestDay=false, curGoodDay=null, curWorkDay=false;
+
+/*  Set when you reopen a check-in you already saved today. Deliberately NOT
+    stored in the database: a mood-only check-in only counts toward the streak
+    while its `locked` flag is true (see hasCheckin), so clearing that flag to
+    allow an edit would silently break the streak. This is a view state, so it
+    lives here and resets on reload or at the day rollover.                   */
+let todayUnlocked = false;
 let graphPeriod='week', graphSeries='overall', graphOffset=0, graphCompare=false;
 
 function renderCheckin() {
@@ -1930,7 +1964,18 @@ function renderCheckin() {
   curWorkDay = saved.workDay || false;
   curGoodDay = saved.goodDay !== undefined ? saved.goodDay : null;
   const activeAreas=getActive(key);
-  document.getElementById('locked-banner').classList.toggle('hidden',!locked);
+  const savedToday = !!(DB.checkins[key] && DB.checkins[key].locked);
+  const banner = document.getElementById('locked-banner');
+  banner.classList.toggle('hidden', !savedToday);
+  if(savedToday) {
+    /*  Today used to be the one day you could not amend: past days have had an
+        Edit button in the calendar all along, but today's check-in locked on
+        save with no way back in. That mattered most right after adding a focus
+        area — it appeared in the list but could not be rated until tomorrow.  */
+    banner.innerHTML = todayUnlocked
+      ? `<span style="color:var(--accent)">Editing today's check-in</span> &nbsp;·&nbsp; Save when you're done to update it.`
+      : `\u2713 Check-in saved for today. <button class="banner-act" onclick="unlockToday()">Edit today's check-in</button>`;
+  }
 
   // Rest day toggle UI
   const toggle = document.getElementById('rest-day-toggle');
@@ -2111,11 +2156,25 @@ function selMood(m,btn) {
   document.querySelectorAll('#mood-row .mood-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); curMood=m;
 }
+/*  Reopens a check-in already saved today. Calling renderCheckin() here is safe
+    — the form was locked, so nothing on screen is unsaved. This is the one case
+    where rebuilding from saved state is exactly what we want.                */
+function unlockToday() {
+  const c = DB.checkins[todayKey()];
+  if(!c || !c.locked) return;
+  todayUnlocked = true;
+  renderCheckin();
+  toast("Today's check-in is open for editing. Save when you're done.");
+}
+
 function saveCheckin() {
   if(isLocked())return;
   const checkinRatings = curRestDay ? {} : {...curR};
+  const wasEdit = todayUnlocked;
   DB.checkins[todayKey()]={ratings:checkinRatings,mood:curMood,note:document.getElementById('daily-note').value.trim(),restDay:curRestDay,workDay:curWorkDay,goodDay:curGoodDay,locked:true,ts:Date.now()};
-  saveDB(); updateStats(); renderCheckin(); msg('✓ Saved & locked until tomorrow');
+  todayUnlocked = false;
+  saveDB(); updateStats(); renderCheckin();
+  msg(wasEdit ? '\u2713 Today\u2019s check-in updated' : '\u2713 Saved & locked until tomorrow');
 }
 function saveNoteOnly() {
   const key=todayKey();
@@ -3134,6 +3193,7 @@ function checkDayRollover() {
   const now = todayKey();
   if (now === _currentDay) return;
   _currentDay = now;
+  todayUnlocked = false;   // a new day starts locked-free anyway; don't carry yesterday's edit state over
   renderAll();
   toast('New day — today\'s check-in is open again.');
 }
