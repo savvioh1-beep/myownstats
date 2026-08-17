@@ -662,9 +662,9 @@ button, input, select, textarea { font-family: inherit; }
       <div id="good-day-row" style="margin-top:14px">
         <div class="flbl" style="margin-top:0">Regardless of the numbers — was today a good day?</div>
         <div style="display:flex;gap:6px">
-          <button class="mood-btn" id="good-day-yes" onclick="setGoodDay(true)">Yes, genuinely good</button>
-          <button class="mood-btn" id="good-day-no" onclick="setGoodDay(false)">Not really</button>
-          <button class="mood-btn" id="good-day-clear" onclick="setGoodDay(null)" style="flex:0 0 auto;padding:6px 10px">Skip</button>
+          <button class="mood-btn" id="good-day-yes" aria-pressed="false" onclick="setGoodDay(true)">Yes, genuinely good</button>
+          <button class="mood-btn" id="good-day-no" aria-pressed="false" onclick="setGoodDay(false)">Not really</button>
+          <button class="mood-btn" id="good-day-clear" aria-pressed="false" onclick="setGoodDay(null)" style="flex:0 0 auto;padding:6px 10px">Skip</button>
         </div>
       </div>
 
@@ -939,7 +939,6 @@ button, input, select, textarea { font-family: inherit; }
 
 <script>
 // ── DATA ────────────────────────────────────────────────────────────────────
-const MASTERS_DATE = new Date('2026-09-01'); // fallback default, used only if DB.countdown is missing
 function getCountdown() {
   if(!DB.countdown) {
     DB.countdown = { label: 'Masters begins in', targetDate: '2026-09-01', startDate: '2026-06-29' };
@@ -988,7 +987,18 @@ function parseKey(ds) {
   if (!y || isNaN(y)) return new Date(NaN);
   return new Date(y, m - 1, d, 12, 0, 0, 0);
 }
-function isKey(ds) { return /^\d{4}-\d{2}-\d{2}$/.test(String(ds || '')) && !isNaN(parseKey(ds)); }
+/*  Round-tripping is the only reliable check here. parseKey builds the date with
+    new Date(y, m-1, d), and that constructor ROLLS OVER out-of-range values
+    rather than failing: '2026-02-30' becomes 2 March, '2026-13-01' becomes
+    January 2027. isNaN never fires for either, so a format check plus isNaN
+    silently accepts impossible dates and reinterprets them as different ones.
+    Comparing the parsed date back against the input catches it exactly.      */
+function isKey(ds) {
+  const s = String(ds || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = parseKey(s);
+  return !isNaN(d) && dateKey(d) === s;
+}
 function addDays(d, n) { const c = new Date(d); c.setDate(c.getDate() + n); return c; }
 function shiftKey(ds, n) { return dateKey(addDays(parseKey(ds), n)); }
 function daysBetween(a, b) { return Math.round((parseKey(b) - parseKey(a)) / 86400000); }
@@ -2043,6 +2053,9 @@ function renderCheckin() {
   [yesBtn,noBtn,clearBtn].forEach(b=>b.classList.remove('active'));
   if(curGoodDay === true) yesBtn.classList.add('active');
   else if(curGoodDay === false) noBtn.classList.add('active');
+  yesBtn.setAttribute('aria-pressed', String(curGoodDay === true));
+  noBtn.setAttribute('aria-pressed', String(curGoodDay === false));
+  clearBtn.setAttribute('aria-pressed', String(curGoodDay === null));
   if(locked) { [yesBtn,noBtn,clearBtn].forEach(b=>{b.classList.add('lmood'); b.onclick=null;}); }
   else { yesBtn.onclick=()=>setGoodDay(true); noBtn.onclick=()=>setGoodDay(false); clearBtn.onclick=()=>setGoodDay(null); [yesBtn,noBtn,clearBtn].forEach(b=>b.classList.remove('lmood')); }
 
@@ -2052,6 +2065,7 @@ function renderCheckin() {
     b.className='mood-btn'+(locked?' lmood':'');
     b.textContent=m;
     if(curMood===m)b.classList.add('active');
+    b.setAttribute('aria-pressed', String(curMood===m));
     if(!locked)b.onclick=()=>selMood(m,b);
     mr.appendChild(b);
   });
@@ -2134,6 +2148,13 @@ function setGoodDay(val) {
   [yesBtn, noBtn, clearBtn].forEach(b => b.classList.remove('active'));
   if(curGoodDay === true) yesBtn.classList.add('active');
   else if(curGoodDay === false) noBtn.classList.add('active');
+  /*  Selection was previously carried by the CSS class alone, so a screen
+      reader announced three identical buttons with no way to tell which was
+      chosen. Same failure as the stale aria-pressed caught during the
+      accessibility pass; keep the attribute beside every class change.       */
+  yesBtn.setAttribute('aria-pressed', String(curGoodDay === true));
+  noBtn.setAttribute('aria-pressed', String(curGoodDay === false));
+  clearBtn.setAttribute('aria-pressed', String(curGoodDay === null));
 }
 
 function selDot(aid,val) {
@@ -2153,8 +2174,11 @@ function selDot(aid,val) {
 }
 function selMood(m,btn) {
   if(isLocked())return;
-  document.querySelectorAll('#mood-row .mood-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active'); curMood=m;
+  document.querySelectorAll('#mood-row .mood-btn').forEach(b=>{
+    b.classList.remove('active');
+    b.setAttribute('aria-pressed','false');
+  });
+  btn.classList.add('active'); btn.setAttribute('aria-pressed','true'); curMood=m;
 }
 /*  Reopens a check-in already saved today. Calling renderCheckin() here is safe
     — the form was locked, so nothing on screen is unsaved. This is the one case
