@@ -979,6 +979,18 @@ button, input, select, textarea { font-family: inherit; }
   </button>
 </nav>
 
+<!-- COULD NOT LOAD: a dead end on purpose. This session does not hold the
+     user's data, so it must not look like an app they can use. -->
+<div id="load-fail" class="gate hidden">
+  <div class="gate-box">
+    <div class="gate-title">Couldn't load your data</div>
+    <div class="gate-sub">This device is signed in but couldn't read your history. <strong>Nothing has been saved over it</strong> — your data is untouched on the server, and MOS won't write anything from this session.</div>
+    <button class="gate-btn" onclick="location.reload()">Try again</button>
+    <button class="gate-alt" onclick="signOut()">Sign in as someone else</button>
+    <div class="gate-foot">Usually a connection problem or an incomplete sign-in. If it keeps happening, open MOS on a device where your history shows and export a backup.</div>
+  </div>
+</div>
+
 <!-- TOASTS -->
 <div class="toast-wrap" id="toast-wrap" role="status" aria-live="polite"></div>
 
@@ -1230,6 +1242,23 @@ const Store = (function () {
   function emit() { watchers.forEach(fn => { try { fn(state()); } catch (e) {} }); }
 
   async function flush() {
+    /*  THE GUARD THAT WAS MISSING.
+
+        A session that could not read its data must never write. Refusing only
+        at startup was not enough: init() correctly declined to seed defaults,
+        but every later save went straight through — an ordinary interaction,
+        or signOut() calling saveNow(), would push the fallback database over
+        a perfectly good cloud record. That is exactly how a phone showing a
+        blank MOS destroyed real history.
+
+        Reading and writing are the same permission in every sense that matters
+        here. If the read did not work, the in-memory DB is not the user's data
+        and has no business being saved.                                     */
+    if (loadFailed) {
+      lastError = 'Not saving — this session could not load your data.';
+      pending = false; emit();
+      return false;
+    }
     if (writing || !pending) return !lastError;
     writing = true; pending = false; emit();
     try {
@@ -3976,7 +4005,10 @@ async function setAccountPassword(pw) {
 
 async function signOut() {
   if (!confirm('Sign out of MyOwnStats on this device?\n\nYour data stays safely in the cloud.')) return;
-  await Store.saveNow();
+  /*  Only save if this session actually holds the user's data. Saving on the
+      way out of a session that failed to load is how a fallback database gets
+      written over a real one.                                               */
+  if (!Store.loadFailed) await Store.saveNow();
   try { localStorage.removeItem(MIRROR_KEY); } catch (e) {}
   await sb.auth.signOut();
   location.reload();
@@ -4008,9 +4040,14 @@ async function startApp() {
   /*  If we got here without being able to read stored data, MOS is showing a
       blank default — say so plainly rather than letting it look like the
       history vanished. Nothing has been written over it.                    */
+  /*  A failed load used to show the app over a blank default database with a
+      red toast on top. That was far too quiet: on a phone it reads as "my data
+      is gone" rather than "this session could not reach it", and every tap
+      invited a write. Now it stops the app dead. Writes are blocked in flush()
+      as well — belt and braces, because the quiet version cost real history. */
   if (Store.loadFailed) {
-    toast('Could not load your saved data, so this is a blank starting view. Nothing has been written over your history. Reload once you are fully signed in.',
-          { type: 'error', duration: 0 });
+    document.getElementById('load-fail').classList.remove('hidden');
+    return;
   }
 }
 
