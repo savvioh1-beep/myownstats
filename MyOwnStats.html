@@ -503,7 +503,55 @@ button, input, select, textarea { font-family: inherit; }
 
   /* No nav behind a sign-in, MFA or setup screen. */
   .gate:not(.hidden) ~ .tabbar-bottom { display: none; }
+}/* ── PHASES & ARCHIVED AREAS (v7) ────────────────────────────────────────── */
+.plan-year {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.4px;
+  color: var(--dim); text-transform: uppercase;
+  margin: 22px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border);
 }
+.plan-year:first-child { margin-top: 0; }
+
+.plan-next {
+  border: 1px solid var(--border2); border-radius: 8px;
+  padding: 11px 13px; margin-bottom: 16px;
+  font-size: 13px; color: var(--text); background: rgba(255,255,255,0.03);
+}
+.plan-num {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.6px;
+  color: var(--accent); margin-right: 7px;
+}
+.plan-card.plan-now { border-color: var(--accent); }
+.plan-hdr-right { display: flex; align-items: center; gap: 8px; }
+.plan-range { font-size: 11px; color: var(--dim); margin: -2px 0 10px; }
+.plan-badge {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.6px;
+  padding: 2px 7px; border-radius: 4px;
+  color: var(--bg); background: var(--accent);
+}
+.plan-badge.past  { color: var(--dim);   background: none; border: 1px solid var(--border2); }
+.plan-badge.soon  { color: var(--muted); background: none; border: 1px solid var(--border2); }
+.plan-badge.track { color: var(--muted); background: none; border: 1px solid var(--border2); }
+
+.archived-areas { margin-top: 18px; }
+.arch-hdr {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.2px;
+  color: var(--dim); text-transform: uppercase; margin-bottom: 8px;
+}
+.arch-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; margin-bottom: 6px;
+  border: 1px solid var(--border); border-radius: 7px;
+}
+.arch-title { font-size: 13px; color: var(--muted); flex: 1; }
+.arch-date  { font-size: 11px; color: var(--dim); font-family: var(--font-mono); }
+.arch-btn {
+  background: none; border: 1px solid var(--border2); border-radius: 6px;
+  padding: 4px 10px; color: var(--accent); font-size: 11px;
+  font-family: var(--font-sans); cursor: pointer;
+}
+.arch-btn:hover { border-color: var(--accent); }
+.modal-hint { font-size: 11px; color: var(--dim); line-height: 1.5; margin-top: 6px; }
+
 </style>
 </head>
 <body>
@@ -627,6 +675,7 @@ button, input, select, textarea { font-family: inherit; }
     </div>
 
     <div class="focus-grid" id="focus-grid"></div>
+    <div id="archived-areas" class="archived-areas hidden"></div>
     <button class="add-card-btn" onclick="openAddCard()">+ Add focus area</button>
   </div>
 
@@ -810,6 +859,7 @@ button, input, select, textarea { font-family: inherit; }
   <!-- PLAN -->
   <div id="plan" class="section">
     <div class="slbl">Your roadmap — fully editable</div>
+    <div id="plan-next" class="plan-next hidden"></div>
     <div id="plan-cards"></div>
     <button class="add-phase-btn" onclick="openAddPhase()">+ Add phase</button>
   </div>
@@ -954,17 +1004,18 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 const DNAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 const DEF_FOCUS = [
-  {id:'f1',title:'Rehab & Marathon',status:'Rehab mode · Rotterdam Marathon April 2027',activeDays:[0,1,2,3,4,5,6],tasks:[{text:'Attend all physio appointments',s:'a'},{text:'Follow rehab protocol daily',s:'a'},{text:'Start walk/jog base building',s:'a'},{text:'Log weekly km in marathon tracker',s:'a'},{text:'Register for Rotterdam Marathon',s:'a'},{text:'Get green light to run from physio',s:'a'}]},
-  {id:'f2',title:'PULSE Work',status:'Committed until September · Role review when Masters begins',activeDays:[1,2,3,4,5],tasks:[{text:'Map July–Aug events pipeline',s:'a'},{text:'Deliver on current commitments',s:'a'},{text:'Define handover plan before Sept',s:'a'}]},
-  {id:'f3',title:'Masters Prep',status:'Erasmus Rotterdam · Pre-master starts 1 Sept',activeDays:[1,2,3,4,5],tasks:[{text:'Enrollment confirmed',s:'g'},{text:'Housing sorted in Rotterdam',s:'a'},{text:'Connect with future classmates',s:'a'},{text:'R language basics — 30 min/day',s:'r'},{text:'Statistics fundamentals — work through core concepts',s:'a'},{text:'Complete pre-reading list before Sept',s:'a'}]},
-  {id:'f4',title:'Finance & Income',status:'Tight · Min wage + PULSE · Masters budget mapped',activeDays:[1,2,3,4,5],tasks:[{text:'DUO eligibility confirmed',s:'a'},{text:'12-month budget mapped',s:'a'},{text:'Reduce unnecessary spend before Sept',s:'a'}]},
-  {id:'f6',title:'Drums & Music',status:'Resuming · Find a kit in Rotterdam',activeDays:[0,1,2,3,4,5,6],tasks:[{text:'Find a practice space or kit in Rotterdam',s:'r'},{text:'Play at least 2x per week once settled',s:'a'},{text:'Listen & study in the meantime',s:'g'}]}
+  {id:'f1',title:'Rehab & Marathon',status:'Rehab mode · Rotterdam Marathon April 2027',activeDays:[0,1,2,3,4,5,6],tasks:[{text:'Attend all physio appointments',s:'a'},{text:'Follow rehab protocol daily',s:'a'},{text:'Start walk/jog base building',s:'a'},{text:'Log weekly km in marathon tracker',s:'a'},{text:'Register for Rotterdam Marathon',s:'a'},{text:'Get green light to run from physio',s:'a'}],endedOn:null},
+  {id:'f2',title:'PULSE Work',status:'Committed until September · Role review when Masters begins',activeDays:[1,2,3,4,5],tasks:[{text:'Map July–Aug events pipeline',s:'a'},{text:'Deliver on current commitments',s:'a'},{text:'Define handover plan before Sept',s:'a'}],endedOn:null},
+  {id:'f3',title:'Masters Prep',status:'Erasmus Rotterdam · Pre-master starts 1 Sept',activeDays:[1,2,3,4,5],tasks:[{text:'Enrollment confirmed',s:'g'},{text:'Housing sorted in Rotterdam',s:'a'},{text:'Connect with future classmates',s:'a'},{text:'R language basics — 30 min/day',s:'r'},{text:'Statistics fundamentals — work through core concepts',s:'a'},{text:'Complete pre-reading list before Sept',s:'a'}],endedOn:null},
+  {id:'f4',title:'Finance & Income',status:'Tight · Min wage + PULSE · Masters budget mapped',activeDays:[1,2,3,4,5],tasks:[{text:'DUO eligibility confirmed',s:'a'},{text:'12-month budget mapped',s:'a'},{text:'Reduce unnecessary spend before Sept',s:'a'}],endedOn:null},
+  {id:'f6',title:'Drums & Music',status:'Resuming · Find a kit in Rotterdam',activeDays:[0,1,2,3,4,5,6],tasks:[{text:'Find a practice space or kit in Rotterdam',s:'r'},{text:'Play at least 2x per week once settled',s:'a'},{text:'Listen & study in the meantime',s:'g'}],endedOn:null}
 ];
 const DEF_PLAN = [
-  {id:'p0',color:'green',label:'✓ Phase 1 & 2 — Complete',items:['Full rest & ankle surgery recovery (weeks 1–2)','Varicocele surgery & overlapping recovery (weeks 3–4)','PULSE equity conversation initiated','DUO eligibility checked','Rotterdam marathon researched & date locked','Make.com automation built with AI in the middle','Erasmus enrollment confirmed']},
-  {id:'p3',color:'blue',label:'Now · Back in NL — Phase 3',items:['Get settled in Rotterdam','Resume drums — find a practice space or kit','Start walk/jog rehab base building','R language — 30 min/day minimum','Statistics fundamentals — core concepts before Sept','PULSE: deliver July–Aug commitments, map handover','Sort housing if not yet confirmed','Connect with Erasmus classmates']},
-  {id:'p4',color:'amber',label:'Sept 1 · Pre-master begins',items:['Masters in full swing — protect your energy above all','Marathon training structured around class schedule','PULSE: contributing clearly or clean exit','Drums as a weekly ritual, not a chore','Budget tight — track spend closely']},
-  {id:'p5',color:'green',label:'Masters Prep path · R & Statistics milestones',items:['R basics: data types, vectors, data frames, basic plots','Statistics: descriptive stats, probability, distributions','R intermediate: dplyr, ggplot2, tidyverse workflow','Statistics: inference, hypothesis testing, regression basics','Complete one mini project in R before Sept 1','Rule: 30 min/day minimum, every weekday — treat it like training']}];
+  {id:'p1',color:'green',name:'Recovery',startDate:'2026-05-05',items:['Full rest & ankle surgery recovery (weeks 1–2)']},
+  {id:'p2',color:'green',name:'Second surgery & overlap',startDate:'2026-05-28',items:['Varicocele surgery & overlapping recovery (weeks 3–4)','PULSE equity conversation initiated','DUO eligibility checked','Rotterdam marathon researched & date locked','Make.com automation built with AI in the middle','Erasmus enrollment confirmed']},
+  {id:'p3',color:'blue',name:'Back in NL',startDate:'2026-06-29',items:['Get settled in Rotterdam','Resume drums — find a practice space or kit','Start walk/jog rehab base building','R language — 30 min/day minimum','Statistics fundamentals — core concepts before Sept','PULSE: deliver July–Aug commitments, map handover','Sort housing if not yet confirmed','Connect with Erasmus classmates']},
+  {id:'p4',color:'amber',name:'Pre-master begins',startDate:'2026-09-01',items:['Masters in full swing — protect your energy above all','Marathon training structured around class schedule','PULSE: contributing clearly or clean exit','Drums as a weekly ritual, not a chore','Budget tight — track spend closely']},
+  {id:'p5',color:'green',name:'Masters Prep path · R & Statistics milestones',startDate:null,items:['R basics: data types, vectors, data frames, basic plots','Statistics: descriptive stats, probability, distributions','R intermediate: dplyr, ggplot2, tidyverse workflow','Statistics: inference, hypothesis testing, regression basics','Complete one mini project in R before Sept 1','Rule: 30 min/day minimum, every weekday — treat it like training']}];
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  LAYER 1 — DATES
@@ -1021,7 +1072,7 @@ function fmtKey(ds, opts) { return parseKey(ds).toLocaleDateString('en-GB', opts
 //  Writes are queued and awaited, so swapping `localAdapter` for a Supabase
 //  adapter with the same three async methods is the entire migration surface.
 // ═══════════════════════════════════════════════════════════════════════════
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 const DB_KEY = 'mos_v5', LEGACY_KEY = 'mos_v4', LEGACY_MAR_KEY = 'mos_marathon';
 
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
@@ -1295,6 +1346,69 @@ function migrateDB(raw) {
     changed = true;
   }
 
+  /*  v6 → v7: phases gain a name and a start date; focus areas gain an end date.
+
+      Before this, a phase was a hand-maintained label — "Now ·" typed in by the
+      owner, the colour picked from a dropdown — and MOS had no idea which phase
+      was current or when any of them began. Dates are what let the Plan tab
+      work that out for itself, and what the phase transition is triggered by.
+
+      The existing four records do not map one-to-one. `p0` held Phases 1 and 2
+      merged together after they completed, so it splits back into two; only the
+      two items that name their own weeks can be placed with confidence, and the
+      rest stay with Phase 2 for the owner to move. The Masters Prep record is
+      not a phase at all — it is a parallel track of study milestones that ran
+      alongside Phase 3 — so it keeps a null start date and renders outside the
+      numbering rather than being forced into the sequence.                  */
+  if (from < 7) {
+    const dated = [];
+    const byId = id => db.plan.find(p => p.id === id);
+
+    const p0 = byId('p0');
+    if (p0) {
+      const items = Array.isArray(p0.items) ? p0.items.slice() : [];
+      const takeMatching = re => {
+        const i = items.findIndex(t => re.test(t));
+        return i === -1 ? [] : items.splice(i, 1);
+      };
+      const p1items = takeMatching(/weeks?\s*1\s*[–-]\s*2/i);
+      const p2items = takeMatching(/weeks?\s*3\s*[–-]\s*4/i);
+      dated.push({ id: 'p1', color: 'green', name: 'Recovery', startDate: '2026-05-05', items: p1items });
+      dated.push({ id: 'p2', color: 'green', name: 'Second surgery & overlap', startDate: '2026-05-28',
+                   items: p2items.concat(items) });
+    }
+
+    const p3 = byId('p3');
+    if (p3) dated.push({ id: 'p3', color: 'blue', name: 'Back in NL', startDate: '2026-06-29',
+                         items: p3.items || [] });
+
+    const p4 = byId('p4');
+    if (p4) dated.push({ id: 'p4', color: 'amber', name: 'Pre-master begins', startDate: '2026-09-01',
+                         items: p4.items || [] });
+
+    // Anything else the owner added keeps its label as its name, undated.
+    db.plan.forEach(p => {
+      if (['p0','p3','p4'].includes(p.id)) return;
+      dated.push({ id: p.id, color: p.color || 'green',
+                   name: String(p.label || p.name || 'Untitled').replace(/^[^A-Za-z0-9]+/, '').trim(),
+                   startDate: null, items: p.items || [] });
+    });
+
+    db.plan = dated;
+    db.focus.forEach(f => { if (!('endedOn' in f)) f.endedOn = null; });
+    changed = true;
+  }
+
+  // Normalise phases and areas on every load, not only at migration.
+  db.plan = db.plan.map(p => ({
+    id: p.id || uid(),
+    color: ['red','amber','blue','green'].includes(p.color) ? p.color : 'green',
+    name: String(p.name != null ? p.name : (p.label || 'Untitled')).slice(0, 80),
+    startDate: isKey(p.startDate) ? p.startDate : null,
+    items: Array.isArray(p.items) ? p.items.filter(i => typeof i === 'string') : []
+  }));
+  db.focus.forEach(f => { if (!isKey(f.endedOn)) f.endedOn = null; });
+
   // Normalise + validate every record on the way in.
   if (!db.marathon || typeof db.marathon !== 'object') { db.marathon = defaultMarathon(); changed = true; }
   db.marathon.runs = (Array.isArray(db.marathon.runs) ? db.marathon.runs : []).map(cleanRun).filter(Boolean);
@@ -1379,7 +1493,44 @@ function initSyncStatus() {
 }
 
 function getDow(ds) { return parseKey(ds).getDay(); }
-function getActive(ds) { const dow=getDow(ds); return DB.focus.filter(f=>(f.activeDays||[0,1,2,3,4,5,6]).includes(dow)); }
+/*  THE ARCHIVE CHOKEPOINT.
+
+    `endedOn` is the LAST day a focus area was live, inclusive. An archived area
+    keeps counting toward the score of every day up to and including that date,
+    and drops out from the day after. That is the whole point: a phase change
+    must not alter a single day of recorded history.
+
+    Deleting an area does something quite different and much worse — a day's
+    score divides across whichever areas currently exist, so removing one lifts
+    every past day it appeared on. A day rated 3 / 2 / 1 across three areas
+    reads 67%, and becomes 83% once one of them is deleted. Archiving exists so
+    that retiring an area at a phase change never does that.
+
+    Every date-aware caller already comes through getActive(), so teaching it
+    here is what makes editing a day in July still show July's areas.        */
+function getActive(ds) {
+  const dow = getDow(ds);
+  return DB.focus.filter(f =>
+    (f.activeDays || [0,1,2,3,4,5,6]).includes(dow) &&
+    (!f.endedOn || ds <= f.endedOn)
+  );
+}
+
+/*  Areas still in play. Used by everything forward-looking — the Overview grid,
+    the trends engine, the task roll-up, the graph series list — none of which
+    should surface an area that has been retired. Lookups by ID deliberately do
+    NOT use this, because un-archiving has to be able to find one.           */
+function liveAreas() { return DB.focus.filter(f => !f.endedOn); }
+
+/*  Ratings recorded for an area after a proposed end date. Archiving is safe
+    when this is empty; when it is not, those days would lose that rating from
+    their score, which is exactly the history rewrite we are avoiding.       */
+function ratingsAfter(areaId, endedOn) {
+  return Object.keys(DB.checkins).filter(k =>
+    k > endedOn && DB.checkins[k] && DB.checkins[k].ratings &&
+    typeof DB.checkins[k].ratings[areaId] === 'number' && DB.checkins[k].ratings[areaId] > 0
+  ).sort();
+}
 function getDayPct(key) {
   const c=DB.checkins[key];
   if(!c) return null;
@@ -1607,7 +1758,7 @@ function renderOverviewWeekSummary() {
   const avgScore = pcts.length?Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length):null;
 
   const areaScores = {};
-  DB.focus.forEach(area=>{ areaScores[area.id] = {sum:0,count:0,title:area.title}; });
+  liveAreas().forEach(area=>{ areaScores[area.id] = {sum:0,count:0,title:area.title}; });
   weekKeys.forEach(k=>{
     const c=DB.checkins[k];
     if(!c||!c.ratings) return;
@@ -1720,7 +1871,7 @@ function startCardDrag(evt, cardId) {
 function renderFocus() {
   const grid = document.getElementById('focus-grid');
   grid.innerHTML = '';
-  DB.focus.forEach(card => {
+  liveAreas().forEach(card => {
     const active = card.activeDays||[0,1,2,3,4,5,6];
     const pills = DOW_L.map((l,i)=>`<span class="dpill ${active.includes(i)?'on':''}">${l}</span>`).join('');
     const openCount = card.tasks.filter(t=>t.s!=='g').length;
@@ -1746,6 +1897,21 @@ function renderFocus() {
     grid.appendChild(div);
     renderTasks(card.id);
   });
+
+  /*  Archived areas listed quietly beneath the live ones — present enough to
+      un-archive, faint enough not to compete with what is current.          */
+  const arch = DB.focus.filter(f => f.endedOn);
+  const wrap = document.getElementById('archived-areas');
+  if (wrap) {
+    wrap.classList.toggle('hidden', !arch.length);
+    wrap.innerHTML = arch.length ? `
+      <div class="arch-hdr">Archived — still counted in past scores</div>
+      ${arch.map(c=>`<div class="arch-row">
+        <span class="arch-title">${esc(c.title)}</span>
+        <span class="arch-date">ended ${fmtShort(c.endedOn)}</span>
+        <button class="arch-btn" onclick="unarchiveCard('${c.id}')">Restore</button>
+      </div>`).join('')}` : '';
+  }
 }
 
 let doneExpanded = {}; // runtime-only per-card toggle state for hidden done tasks
@@ -1931,7 +2097,73 @@ function openEditCard(cid) {
     <div class="modal-field"><div class="modal-lbl">Title</div><input class="modal-inp" id="m-t" value="${escAttr(card.title)}"></div>
     <div class="modal-field"><div class="modal-lbl">Subtitle</div><input class="modal-inp" id="m-s" value="${escAttr(card.status)}"></div>
     <div class="modal-field"><div class="modal-lbl">Active days</div><div class="days-picker" id="m-d">${DOW_L.map((l,i)=>`<button class="dtoggle ${active.includes(i)?'on':''}" data-d="${i}" onclick="this.classList.toggle('on')">${l}</button>`).join('')}</div></div>
+    <div class="modal-field"><div class="modal-lbl">Retiring this area?</div>
+      <button class="mbtn secondary" style="width:100%" onclick="openArchiveCard('${cid}')">Archive instead of deleting</button>
+      <div class="modal-hint">Archiving keeps every past score exactly as it is. Deleting changes them.</div>
+    </div>
     <div class="modal-btns"><button class="mbtn danger" onclick="deleteCard('${cid}')">Delete</button><button class="mbtn secondary" onclick="closeModal()">Cancel</button><button class="mbtn primary" onclick="saveCard('${cid}')">Save</button></div>`);
+}
+
+/*  Archiving: the right way to retire an area at a phase change. The end date
+    is the LAST day the area was live, so it keeps counting for that day and
+    every one before it. Defaults to today, because "today is my last day of X"
+    is the normal case.                                                      */
+function openArchiveCard(cid) {
+  const card = DB.focus.find(c=>c.id===cid); if(!card) return;
+  const t = todayKey();
+  showModal(`<div class="modal-title">Archive "${esc(card.title)}"</div>
+    <div class="modal-hint" style="margin-bottom:14px">It stops appearing in check-ins after the date below, and keeps counting toward the score of every day up to and including it. Nothing in your history changes.</div>
+    <div class="modal-field"><div class="modal-lbl">Last active day</div>
+      <input class="modal-inp" type="date" id="m-end" value="${t}" max="${t}">
+    </div>
+    <div id="m-end-warn"></div>
+    <div class="modal-btns">
+      <button class="mbtn secondary" onclick="openEditCard('${cid}')">Back</button>
+      <button class="mbtn primary" onclick="archiveCard('${cid}')">Archive</button>
+    </div>`);
+  const inp = document.getElementById('m-end');
+  const warn = () => {
+    const v = inp.value, w = document.getElementById('m-end-warn');
+    if(!isKey(v)) { w.innerHTML=''; return; }
+    const lost = ratingsAfter(cid, v);
+    w.innerHTML = lost.length
+      ? `<div class="modal-hint" style="color:var(--amber)">${lost.length} day${lost.length===1?'':'s'} after this date already have a rating for this area (${fmtShort(lost[0])}${lost.length>1?' onward':''}). Those days would lose it from their score. Pick a later date to keep them.</div>`
+      : '';
+  };
+  inp.addEventListener('change', warn); inp.addEventListener('input', warn); warn();
+}
+
+function archiveCard(cid) {
+  const card = DB.focus.find(c=>c.id===cid); if(!card) return;
+  const end = document.getElementById('m-end').value.trim();
+  if(!isKey(end)) { toast('That is not a real date.', {type:'error'}); return; }
+  const lost = ratingsAfter(cid, end);
+  if(lost.length && !confirm(`${lost.length} logged day${lost.length===1?'':'s'} after ${end} would lose their rating for "${card.title}", changing those scores. Archive anyway?`)) return;
+
+  const openTasks = card.tasks.filter(t=>t.s!=='g');
+  const prev = card.endedOn;
+  card.endedOn = end;
+  saveDB(); closeModal(); renderFocus(); refreshCheckinAreas(); renderPlan();
+
+  const tail = openTasks.length ? ` ${openTasks.length} open task${openTasks.length===1?'':'s'} went with it.` : '';
+  undoToast(`Archived "${card.title}".${tail}`, () => {
+    const c = DB.focus.find(x=>x.id===cid); if(!c) return;
+    c.endedOn = prev; saveDB(); renderFocus(); refreshCheckinAreas(); renderPlan();
+  });
+}
+
+/*  Bringing an area back keeps its own ID, so history reconnects rather than
+    splitting into two similarly named entries. The dormant stretch simply holds
+    no rating, which the scoring already handles.                            */
+function unarchiveCard(cid) {
+  const card = DB.focus.find(c=>c.id===cid); if(!card || !card.endedOn) return;
+  const prev = card.endedOn;
+  card.endedOn = null;
+  saveDB(); renderFocus(); refreshCheckinAreas();
+  undoToast(`"${card.title}" is active again.`, () => {
+    const c = DB.focus.find(x=>x.id===cid); if(!c) return;
+    c.endedOn = prev; saveDB(); renderFocus(); refreshCheckinAreas();
+  });
 }
 function saveCard(cid) {
   const card=DB.focus.find(c=>c.id===cid); if(!card)return;
@@ -1947,7 +2179,7 @@ function deleteCard(cid) {
   if(idx===-1) return;
   const card = DB.focus[idx];
   const openTasks = card.tasks.filter(t=>t.s!=='g').length;
-  if(!confirm(`Delete "${card.title}"?\n\nIt has ${card.tasks.length} tasks (${openTasks} still open). Past ratings for this area stay in your history.`)) return;
+  if(!confirm(`Delete "${card.title}"?\n\nIt has ${card.tasks.length} tasks (${openTasks} still open).\n\nThis CHANGES YOUR PAST SCORES. A day's score divides across whichever areas exist, so every day this area appeared on will recalculate without it and read higher than it did. To retire an area without touching your history, use Archive instead.`)) return;
   DB.focus.splice(idx,1);
   saveDB(); closeModal(); renderFocus(); refreshCheckinAreas();
   undoToast(`Deleted "${card.title}".`, () => {
@@ -2014,7 +2246,7 @@ function renderCheckin() {
     // Hide area ratings entirely on rest days
     el.innerHTML = `<div style="font-size:12px;color:var(--muted);background:rgba(255,255,255,0.04);border-radius:8px;padding:10px 12px;line-height:1.5">Rest day — no area scoring today. Just log your mood and any thoughts below if you want.</div>`;
   } else {
-    DB.focus.forEach(area=>{
+    liveAreas().forEach(area=>{
       const isAct=!!activeAreas.find(a=>a.id===area.id);
       const row=document.createElement('div'); row.className='area-row';
       const lbl=document.createElement('div'); lbl.className='area-lbl'; lbl.textContent=area.title;
@@ -2095,7 +2327,7 @@ function toggleRestDay() {
   } else {
     const key = todayKey();
     const activeAreas = getActive(key);
-    DB.focus.forEach(area => {
+    liveAreas().forEach(area => {
       const isAct = !!activeAreas.find(a => a.id === area.id);
       const row = document.createElement('div'); row.className = 'area-row';
       const lbl = document.createElement('div'); lbl.className = 'area-lbl'; lbl.textContent = area.title;
@@ -2226,7 +2458,7 @@ function renderWeekSummary() {
 
   // Per-area performance this week — find best and worst area
   const areaScores = {};
-  DB.focus.forEach(area=>{ areaScores[area.id] = {sum:0,count:0,title:area.title}; });
+  liveAreas().forEach(area=>{ areaScores[area.id] = {sum:0,count:0,title:area.title}; });
   weekKeys.forEach(k=>{
     const c=DB.checkins[k];
     if(!c||!c.ratings) return;
@@ -2247,7 +2479,7 @@ function renderWeekSummary() {
 
   // Open tasks aging
   let oldestAging = null;
-  DB.focus.forEach(card=>card.tasks.forEach(t=>{
+  liveAreas().forEach(card=>card.tasks.forEach(t=>{
     if(t.s==='r'&&t.since){
       const days=Math.floor((Date.now()-t.since)/86400000);
       if(!oldestAging||days>oldestAging.days) oldestAging={text:t.text,days,card:card.title};
@@ -2307,7 +2539,7 @@ function renderTrendsSuggestions() {
   let cards = [];
 
   // 1. Per-area: low streak detection (rated 1, consecutive recent days)
-  DB.focus.forEach(area => {
+  liveAreas().forEach(area => {
     const recentRatings = last14
       .map(k => ({k, v: DB.checkins[k].ratings ? DB.checkins[k].ratings[area.id] : undefined}))
       .filter(r => r.v !== undefined && r.v !== null);
@@ -2332,7 +2564,7 @@ function renderTrendsSuggestions() {
 
   // 2. Mood vs area correlation — does mood dip when a specific area is rated low?
   const moodMap = {Rough:1,Okay:2,Solid:3,Great:4};
-  DB.focus.forEach(area => {
+  liveAreas().forEach(area => {
     const pairs = last14.map(k=>{
       const c = DB.checkins[k];
       if(!c || !c.mood || !c.ratings || c.ratings[area.id]===undefined) return null;
@@ -2351,7 +2583,7 @@ function renderTrendsSuggestions() {
   });
 
   // 3. Week over week trend per area
-  DB.focus.forEach(area => {
+  liveAreas().forEach(area => {
     const prevVals = prev7.map(k=>DB.checkins[k]&&DB.checkins[k].ratings?DB.checkins[k].ratings[area.id]:undefined).filter(v=>v!==undefined&&v!==null);
     const curVals = last7.map(k=>DB.checkins[k]&&DB.checkins[k].ratings?DB.checkins[k].ratings[area.id]:undefined).filter(v=>v!==undefined&&v!==null);
     if(prevVals.length < 2 || curVals.length < 2) return;
@@ -2443,7 +2675,7 @@ function renderGraphChips() {
   const wrap = document.getElementById('graph-chips');
   if(!DB.focus.find(f=>f.id===graphSeries)) graphSeries = 'overall';
   let html = `<button class="graph-chip${graphSeries==='overall'?' active':''}" onclick="setGraphSeries('overall')">Overall</button>`;
-  DB.focus.forEach(area=>{
+  liveAreas().forEach(area=>{
     html += `<button class="graph-chip${graphSeries===area.id?' active':''}" onclick="setGraphSeries('${area.id}')">${esc(area.title)}</button>`;
   });
   wrap.innerHTML = html;
@@ -2633,7 +2865,7 @@ function renderProgress() {
   const cd2 = getCountdown(); const daysLeft2 = Math.max(0, daysBetween(todayKey(), cd2.targetDate));
   // Dynamically find the highest-priority open task (oldest urgent task across all focus areas)
   let topTask = null;
-  DB.focus.forEach(card=>card.tasks.forEach(t=>{
+  liveAreas().forEach(card=>card.tasks.forEach(t=>{
     if(t.s==='r'){
       const days = t.since ? Math.floor((Date.now()-t.since)/86400000) : 0;
       if(!topTask || days > topTask.days) topTask = {text:t.text, days, card:card.title};
@@ -2987,13 +3219,44 @@ function renderOnePct() {
 // ── PLAN ────────────────────────────────────────────────────────────────────
 function renderPlan() {
   const el=document.getElementById('plan-cards'); el.innerHTML='';
-  DB.plan.forEach(phase=>{
-    const div=document.createElement('div'); div.className='plan-card glass';
+  const seq = phaseSequence();
+  const cur = currentPhase();
+  const nxt = nextPhase();
+  const today = todayKey();
+  let lastYear = null;
+
+  seq.forEach(entry => {
+    const phase = entry.phase;
+    // Year heading, so the reset in the numbering is visible rather than odd.
+    if (entry.year !== lastYear) {
+      const yh = document.createElement('div');
+      yh.className = 'plan-year';
+      yh.textContent = entry.year;
+      el.appendChild(yh);
+      lastYear = entry.year;
+    }
+
+    const isCur = !!(cur && cur.phase.id === phase.id);
+    const isPast = !!(entry.endsOn && entry.endsOn < today);
+    const div=document.createElement('div');
+    div.className='plan-card glass' + (isCur ? ' plan-now' : '');
+
+    // Date range reads from the sequence: a phase ends the day before the next
+    // begins, so the ranges can never overlap or leave a gap.
+    const from = fmtShort(phase.startDate);
+    const range = entry.endsOn ? `${from} – ${fmtShort(entry.endsOn)}` : `from ${from}`;
+    const status = isCur ? '<span class="plan-badge">Now</span>'
+                 : isPast ? '<span class="plan-badge past">Done</span>'
+                 : `<span class="plan-badge soon">in ${daysBetween(today, phase.startDate)}d</span>`;
+
     div.innerHTML=`
       <div class="plan-ph-hdr">
-        <div class="plan-ph"><span class="phdot ${phase.color!=='red'?phase.color:''}"></span>${esc(phase.label)}</div>
-        <button class="del-ph-btn" onclick="deletePhase('${phase.id}')">Delete phase</button>
+        <div class="plan-ph"><span class="phdot ${phase.color!=='red'?phase.color:''}"></span><span class="plan-num">Phase ${entry.number}</span>${esc(phase.name)}</div>
+        <div class="plan-hdr-right">${status}
+          <button class="del-ph-btn" onclick="openEditPhase('${phase.id}')">Edit</button>
+        </div>
       </div>
+      <div class="plan-range">${range}</div>
       <ul class="plan-items" id="pi-${phase.id}"></ul>
       <div class="add-plan-row">
         <input class="add-plan-inp" id="pii-${phase.id}" placeholder="Add item..." onkeydown="if(event.key==='Enter')addPlanItem('${phase.id}')">
@@ -3002,6 +3265,46 @@ function renderPlan() {
     el.appendChild(div);
     renderPlanItems(phase.id);
   });
+
+  // Undated records are tracks, not phases: no number, outside the sequence.
+  const tracks = phaseTracks();
+  if (tracks.length) {
+    const th=document.createElement('div'); th.className='plan-year'; th.textContent='Tracks';
+    el.appendChild(th);
+    tracks.forEach(phase=>{
+      const div=document.createElement('div'); div.className='plan-card glass';
+      div.innerHTML=`
+        <div class="plan-ph-hdr">
+          <div class="plan-ph"><span class="phdot ${phase.color!=='red'?phase.color:''}"></span>${esc(phase.name)}</div>
+          <div class="plan-hdr-right"><span class="plan-badge track">Ongoing</span>
+            <button class="del-ph-btn" onclick="openEditPhase('${phase.id}')">Edit</button>
+          </div>
+        </div>
+        <div class="plan-range">No dates — runs alongside the phases</div>
+        <ul class="plan-items" id="pi-${phase.id}"></ul>
+        <div class="add-plan-row">
+          <input class="add-plan-inp" id="pii-${phase.id}" placeholder="Add item..." onkeydown="if(event.key==='Enter')addPlanItem('${phase.id}')">
+          <button class="add-btn" onclick="addPlanItem('${phase.id}')">Add</button>
+        </div>`;
+      el.appendChild(div);
+      renderPlanItems(phase.id);
+    });
+  }
+
+  const banner = document.getElementById('plan-next');
+  if (banner) {
+    banner.classList.toggle('hidden', !nxt);
+    if (nxt) {
+      const d = daysBetween(today, nxt.phase.startDate);
+      banner.innerHTML = `<span class="plan-num">Phase ${nxt.number}</span> ${esc(nxt.phase.name)} begins in <strong>${d}</strong> day${d===1?'':'s'} — ${fmtShort(nxt.phase.startDate)}`;
+    }
+  }
+}
+
+function fmtShort(ds) {
+  const d = parseKey(ds);
+  if (isNaN(d)) return '—';
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 function renderPlanItems(pid) {
   const phase=DB.plan.find(p=>p.id===pid), ul=document.getElementById('pi-'+pid);
@@ -3028,28 +3331,132 @@ function deletePhase(pid) {
   const idx = DB.plan.findIndex(p=>p.id===pid);
   if(idx===-1) return;
   const phase = DB.plan[idx];
-  if(!confirm(`Delete "${phase.label}" and its ${phase.items.length} items?`)) return;
+  if(!confirm(`Delete "${phase.name}" and its ${phase.items.length} items?`)) return;
   DB.plan.splice(idx,1); saveDB(); renderPlan();
-  undoToast(`Deleted "${phase.label}".`, () => {
+  undoToast(`Deleted "${phase.name}".`, () => {
     DB.plan.splice(Math.min(idx, DB.plan.length), 0, phase);
     saveDB(); renderPlan();
   });
 }
-function openAddPhase() {
-  showModal(`<div class="modal-title">Add phase</div>
-    <div class="modal-field"><div class="modal-lbl">Phase title</div><input class="modal-inp" id="m-t" placeholder="e.g. Back in Netherlands"></div>
+function openAddPhase() { phaseModal(null); }
+function openEditPhase(pid) { phaseModal(pid); }
+
+function phaseModal(pid) {
+  const p = pid ? DB.plan.find(x => x.id === pid) : null;
+  const seq = phaseSequence();
+  const entry = p ? seq.find(e => e.phase.id === p.id) : null;
+  const opts = ['red','amber','blue','green'];
+  const lbl = { red:'Red — now / urgent', amber:'Amber — soon', blue:'Blue — upcoming', green:'Green — future' };
+  showModal(`<div class="modal-title">${p ? 'Edit phase' : 'Add phase'}</div>
+    <div class="modal-field"><div class="modal-lbl">Name</div><input class="modal-inp" id="m-t" placeholder="e.g. Pre-master begins" value="${p ? escAttr(p.name) : ''}"></div>
+    <div class="modal-field"><div class="modal-lbl">Start date</div>
+      <input class="modal-inp" type="date" id="m-sd" value="${p && p.startDate ? escAttr(p.startDate) : ''}">
+      <div class="modal-hint">Leave empty for an ongoing track that sits outside the phase numbering.</div>
+    </div>
     <div class="modal-field"><div class="modal-lbl">Colour</div>
       <select class="modal-inp" id="m-c">
-        <option value="red">Red — now / urgent</option><option value="amber">Amber — soon</option>
-        <option value="blue">Blue — upcoming</option><option value="green">Green — future</option>
+        ${opts.map(o=>`<option value="${o}"${p&&p.color===o?' selected':''}>${lbl[o]}</option>`).join('')}
       </select>
     </div>
-    <div class="modal-btns"><button class="mbtn secondary" onclick="closeModal()">Cancel</button><button class="mbtn primary" onclick="addPhase()">Add</button></div>`);
+    ${entry ? `<div class="modal-hint" style="margin-bottom:14px">Currently Phase ${entry.number} of ${entry.year}. Numbers come from the start dates, so changing this one may renumber the phases after it.</div>` : ''}
+    <div class="modal-btns">
+      ${p ? `<button class="mbtn danger" onclick="deletePhase('${p.id}')">Delete</button>` : ''}
+      <button class="mbtn secondary" onclick="closeModal()">Cancel</button>
+      <button class="mbtn primary" onclick="${p ? `savePhase('${p.id}')` : 'addPhase()'}">${p ? 'Save' : 'Add'}</button>
+    </div>`);
 }
+
+/*  Shared by add and save. Returns null and complains if the date is unusable,
+    rather than storing something the sequence cannot order.                 */
+function readPhaseForm() {
+  const name = document.getElementById('m-t').value.trim().slice(0,80);
+  const raw  = document.getElementById('m-sd').value.trim();
+  const color= document.getElementById('m-c').value;
+  if(!name){ toast('Give the phase a name.', {type:'error'}); return null; }
+  if(raw && !isKey(raw)){ toast('That start date is not a real date.', {type:'error'}); return null; }
+  return { name, startDate: raw || null, color };
+}
+
 function addPhase() {
-  const label=document.getElementById('m-t').value.trim(), color=document.getElementById('m-c').value;
-  if(!label)return;
-  DB.plan.push({id:uid(),color,label,items:[]}); saveDB(); closeModal(); renderPlan();
+  const f = readPhaseForm(); if(!f) return;
+  DB.plan.push({ id:uid(), color:f.color, name:f.name, startDate:f.startDate, items:[] });
+  saveDB(); closeModal(); renderPlan(); updateStats();
+}
+
+function savePhase(pid) {
+  const p = DB.plan.find(x=>x.id===pid); if(!p) return;
+  const f = readPhaseForm(); if(!f) return;
+  /*  Warn before a change that reorders the sequence. Numbers are derived, so a
+      phase previously referred to as Phase 3 can silently become Phase 4 —
+      better to confirm than to let the sequence shift unnoticed.            */
+  if (p.startDate !== f.startDate) {
+    const before = phaseSequence().map(e=>e.phase.id+':'+e.number).join('|');
+    const trial = { ...p, startDate: f.startDate };
+    const saved = p.startDate; p.startDate = f.startDate;
+    const after = phaseSequence().map(e=>e.phase.id+':'+e.number).join('|');
+    p.startDate = saved;
+    if (before !== after && !confirm('Changing this start date renumbers the phases around it. Continue?')) return;
+  }
+  p.name = f.name; p.startDate = f.startDate; p.color = f.color;
+  saveDB(); closeModal(); renderPlan(); updateStats();
+}
+
+/*  PHASE SEQUENCE — everything here is derived, nothing is stored.
+
+    A phase record carries only a name and a start date. Its number is its
+    position among the phases beginning in the same calendar year, worked out
+    fresh each render. Storing the number in the label instead would mean
+    renaming every phase by hand each January, which is the manual upkeep this
+    replaces. It also means correcting a start date renumbers what follows
+    automatically rather than leaving the sequence quietly wrong.
+
+    Numbering resets by START year, so a phase running from November into March
+    keeps its number for its whole life rather than being relabelled partway
+    through — the same rule archiving follows: a record belongs to when it
+    actually happened, not to a boundary drawn afterwards.
+
+    Undated records (the Masters Prep track) are not phases. They sit outside
+    the sequence entirely and are returned separately.                       */
+function phaseSequence() {
+  const dated = DB.plan.filter(p => isKey(p.startDate))
+                       .sort((a, b) => a.startDate < b.startDate ? -1 : a.startDate > b.startDate ? 1 : 0);
+  const perYear = {};
+  return dated.map((p, i) => {
+    const year = p.startDate.slice(0, 4);
+    perYear[year] = (perYear[year] || 0) + 1;
+    const next = dated[i + 1] || null;
+    return {
+      phase: p,
+      number: perYear[year],
+      year: year,
+      endsOn: next ? shiftKey(next.startDate, -1) : null,   // day before the next begins
+      nextStart: next ? next.startDate : null
+    };
+  });
+}
+
+function phaseTracks() { return DB.plan.filter(p => !isKey(p.startDate)); }
+
+/*  The phase covering a given day: the latest one that has already begun.
+    Returns null before the first phase started.                            */
+function phaseOn(ds) {
+  const seq = phaseSequence();
+  let found = null;
+  seq.forEach(e => { if (e.phase.startDate <= ds) found = e; });
+  return found;
+}
+
+function currentPhase() { return phaseOn(todayKey()); }
+
+/*  The next phase due to start, or null if today sits in the last one. Drives
+    the Plan tab countdown and, once built, the transition card.            */
+function nextPhase() {
+  const t = todayKey();
+  return phaseSequence().find(e => e.phase.startDate > t) || null;
+}
+
+function phaseLabel(entry) {
+  return entry ? `Phase ${entry.number}` : '';
 }
 
 // ── MODAL ───────────────────────────────────────────────────────────────────
@@ -3689,6 +4096,43 @@ window.MOS = {
     ok('migrateDB stamps the schema version', migrateDB({ checkins: {}, focus: [], plan: [] }).db.version === SCHEMA_VERSION);
     ok('migrateDB survives garbage input', !!migrateDB('nonsense').db.checkins);
     ok('marathon lives inside DB', !!DB.marathon && Array.isArray(DB.marathon.runs));
+
+    // ── v7: phases and archiving ──────────────────────────────────────────
+    ok('schema is v7', SCHEMA_VERSION === 7, String(SCHEMA_VERSION));
+    ok('every phase has a name', DB.plan.every(p => typeof p.name === 'string' && p.name.length > 0));
+    ok('no phase kept the old label field', !DB.plan.some(p => 'label' in p));
+    const _seq = phaseSequence();
+    ok('phases are ordered by start date',
+       _seq.every((e, i) => i === 0 || _seq[i-1].phase.startDate <= e.phase.startDate));
+    ok('phase numbers restart each year',
+       (() => { const seen = {};
+         return _seq.every(e => { seen[e.year] = (seen[e.year] || 0) + 1; return e.number === seen[e.year]; }); })());
+    ok('a phase ends the day before the next begins',
+       _seq.every((e, i) => !_seq[i+1] || shiftKey(_seq[i+1].phase.startDate, -1) === e.endsOn));
+    ok('undated records stay outside the sequence',
+       phaseTracks().every(p => !isKey(p.startDate)) &&
+       !_seq.some(e => phaseTracks().some(t => t.id === e.phase.id)));
+    ok('every focus area has an endedOn field', DB.focus.every(f => 'endedOn' in f));
+    ok('archived areas are excluded from the live list', liveAreas().every(f => !f.endedOn));
+    /*  The guarantee the whole v7 change exists for: archiving must not move a
+        single past score, while deleting does. Runs on a scratch copy of the
+        two fields it touches, restored in a finally block.                   */
+    ok('archiving preserves past scores, deleting does not', (() => {
+      const realFocus = DB.focus, realCheckins = DB.checkins;
+      try {
+        const A = [0,1,2,3,4,5,6];
+        DB.focus = [{id:'_t1',title:'a',activeDays:A,tasks:[],endedOn:null},
+                    {id:'_t2',title:'b',activeDays:A,tasks:[],endedOn:null},
+                    {id:'_t3',title:'c',activeDays:A,tasks:[],endedOn:null}];
+        DB.checkins = { '2026-07-15': { ratings:{_t1:1,_t2:2,_t3:3}, locked:true } };
+        const before = getDayPct('2026-07-15');
+        DB.focus[0].endedOn = '2026-07-20';
+        const archived = getDayPct('2026-07-15');
+        DB.focus = DB.focus.slice(1);
+        const deleted = getDayPct('2026-07-15');
+        return before === 67 && archived === 67 && deleted === 83;
+      } finally { DB.focus = realFocus; DB.checkins = realCheckins; }
+    })());
 
     const failed = results.filter(r => !r.pass);
     results.forEach(r => console.log((r.pass ? '\u2713 ' : '\u2717 ') + r.name + (r.detail ? '  \u2192 ' + r.detail : '')));
