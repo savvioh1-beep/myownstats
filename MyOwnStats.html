@@ -1551,6 +1551,19 @@ function getActive(ds) {
     NOT use this, because un-archiving has to be able to find one.           */
 function liveAreas() { return DB.focus.filter(f => !f.endedOn); }
 
+/*  Areas that were live on at least one day of a date window — the same set
+    getDayPct() scores each of those days against. liveAreas() is the wrong
+    question for anything summarising a period: an area archived on Wednesday
+    still counted toward Monday's percentage, so leaving it out of the week
+    summary made two halves of the same screen disagree about the same week. */
+function areasInWindow(keys) {
+  const seen = {}, out = [];
+  keys.forEach(k => getActive(k).forEach(a => {
+    if (!seen[a.id]) { seen[a.id] = true; out.push(a); }
+  }));
+  return out;
+}
+
 /*  Ratings recorded for an area after a proposed end date. Archiving is safe
     when this is empty; when it is not, those days would lose that rating from
     their score, which is exactly the history rewrite we are avoiding.       */
@@ -1708,7 +1721,7 @@ function switchTab(tab, btn) {
   if(tab==='progress') renderProgress();
   if(tab==='calendar'){renderCalendar();renderOnePct();}
   if(tab==='plan') renderPlan();
-  if(tab==='checkin') renderCheckin();
+  if(tab==='checkin') renderCheckinOnEntry();
 }
 function activeTabId() {
   const el = document.querySelector('.section.active');
@@ -1787,7 +1800,7 @@ function renderOverviewWeekSummary() {
   const avgScore = pcts.length?Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length):null;
 
   const areaScores = {};
-  liveAreas().forEach(area=>{ areaScores[area.id] = {sum:0,count:0,title:area.title}; });
+  areasInWindow(weekKeys).forEach(area=>{ areaScores[area.id] = {sum:0,count:0,title:area.title}; });
   weekKeys.forEach(k=>{
     const c=DB.checkins[k];
     if(!c||!c.ratings) return;
@@ -2107,17 +2120,31 @@ function addCard() {
     mood, note and good-day. So if there is anything pending, leave the form
     alone and say so rather than quietly wiping it — the new area is one tab
     switch away regardless.                                                   */
-function refreshCheckinAreas() {
+/*  True when the check-in form holds work that is not in DB yet. Ratings live
+    in curR until Save is pressed — nothing is written before that — so every
+    caller that might rebuild the form has to ask this first. renderCheckin()
+    reloads all five fields from saved state, which is correct on entry and
+    destructive at any other moment.                                       */
+function checkinDirty() {
   const noteEl = document.getElementById('daily-note');
-  const pending =
-    Object.keys(curR).length > 0 ||
+  return Object.keys(curR).length > 0 ||
     !!curMood ||
     curGoodDay !== null ||
     curRestDay || curWorkDay ||
     !!(noteEl && noteEl.value.trim());
+}
 
-  if(isLocked() || !pending) { renderCheckin(); return; }
+function refreshCheckinAreas() {
+  if(isLocked() || !checkinDirty()) { renderCheckin(); return; }
   toast('Focus areas updated. Save your check-in to see the change there.');
+}
+
+/*  Entering the Check-in tab rebuilds the form — unless that would throw away
+    part-entered work. Switching tabs only toggles a class, so the form is
+    still in the DOM exactly as it was left; skipping the rebuild is what
+    preserves it. Silent, because nothing has changed to report.           */
+function renderCheckinOnEntry() {
+  if(isLocked() || !checkinDirty()) renderCheckin();
 }
 
 function openEditCard(cid) {
@@ -2487,7 +2514,7 @@ function renderWeekSummary() {
 
   // Per-area performance this week — find best and worst area
   const areaScores = {};
-  liveAreas().forEach(area=>{ areaScores[area.id] = {sum:0,count:0,title:area.title}; });
+  areasInWindow(weekKeys).forEach(area=>{ areaScores[area.id] = {sum:0,count:0,title:area.title}; });
   weekKeys.forEach(k=>{
     const c=DB.checkins[k];
     if(!c||!c.ratings) return;
@@ -2702,7 +2729,11 @@ function toggleGraphCompare() {
 }
 function renderGraphChips() {
   const wrap = document.getElementById('graph-chips');
-  if(!DB.focus.find(f=>f.id===graphSeries)) graphSeries = 'overall';
+  /*  Checked against liveAreas(), not DB.focus: an archived area is still in
+      DB.focus, so the old test passed and left the graph plotting a series
+      that no longer had a chip — nothing highlighted, no way to tell what
+      the line was.                                                        */
+  if(!liveAreas().some(f=>f.id===graphSeries)) graphSeries = 'overall';
   let html = `<button class="graph-chip${graphSeries==='overall'?' active':''}" onclick="setGraphSeries('overall')">Overall</button>`;
   liveAreas().forEach(area=>{
     html += `<button class="graph-chip${graphSeries===area.id?' active':''}" onclick="setGraphSeries('${area.id}')">${esc(area.title)}</button>`;
@@ -4170,6 +4201,35 @@ window.MOS = {
         return before === 67 && archived === 67 && deleted === 83;
       } finally { DB.focus = realFocus; DB.checkins = realCheckins; }
     })());
+    /*  The week summary must count an area over exactly the days getDayPct()
+        counted it. Seeding from liveAreas() dropped an area archived mid-week
+        out of best/worst while its ratings still moved those days' scores. */
+    ok('areasInWindow keeps an area archived mid-window', (() => {
+      const realFocus = DB.focus;
+      try {
+        const A = [0,1,2,3,4,5,6];
+        DB.focus = [{id:'_w1',title:'a',activeDays:A,tasks:[],endedOn:'2026-07-15'}];
+        const win = ['2026-07-13','2026-07-14','2026-07-15','2026-07-16'];
+        return areasInWindow(win).some(a => a.id === '_w1');
+      } finally { DB.focus = realFocus; }
+    })());
+    ok('areasInWindow drops an area archived before the window', (() => {
+      const realFocus = DB.focus;
+      try {
+        const A = [0,1,2,3,4,5,6];
+        DB.focus = [{id:'_w2',title:'b',activeDays:A,tasks:[],endedOn:'2026-07-01'}];
+        return areasInWindow(['2026-07-13','2026-07-14']).length === 0;
+      } finally { DB.focus = realFocus; }
+    })());
+    ok('areasInWindow does not repeat an area active on every day',
+       (() => {
+         const realFocus = DB.focus;
+         try {
+           const A = [0,1,2,3,4,5,6];
+           DB.focus = [{id:'_w3',title:'c',activeDays:A,tasks:[],endedOn:null}];
+           return areasInWindow(lastNDayKeys(7)).length === 1;
+         } finally { DB.focus = realFocus; }
+       })());
 
     const failed = results.filter(r => !r.pass);
     results.forEach(r => console.log((r.pass ? '\u2713 ' : '\u2717 ') + r.name + (r.detail ? '  \u2192 ' + r.detail : '')));
