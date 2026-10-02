@@ -1229,9 +1229,18 @@ const cloudAdapter = {
     Start with a single JSONB `doc` column mirroring today's shape — it makes
     week 1 a one-day job and keeps the export format identical. Split it into
     relational tables later, once sync is proven on both devices.               */
-const Store = (function () {
-  let adapter = localAdapter;
+/*  A factory rather than a one-off, so MOS.test() can build a throwaway store
+    around a fake adapter and prove the write guards hold — without touching
+    the live store's adapter or flags.                                       */
+function makeStore(initialAdapter) {
+  let adapter = initialAdapter;
   let pending = false, writing = false, lastError = null, savedAt = 0, loadFailed = false;
+  /*  False until the stored data has been read. Before that the in-memory DB
+      is the blank default from page load, not the user's data — the same
+      reason loadFailed blocks writes. A save fired in that window (the page
+      hidden while a slow load is still in flight) would push the blank
+      default over the real record.                                        */
+  let ready = false;
   const watchers = [];
 
   function state() {
@@ -1241,7 +1250,11 @@ const Store = (function () {
   }
   function emit() { watchers.forEach(fn => { try { fn(state()); } catch (e) {} }); }
 
-  async function flush() {
+  /*  `doc` is passed only by settle(): the freshly loaded document, which is
+      not yet the global DB — startApp() assigns that after init() returns.
+      Every other caller saves the global DB.                               */
+  async function flush(doc) {
+    if (!ready) { pending = false; return false; }
     /*  THE GUARD THAT WAS MISSING.
 
         A session that could not read its data must never write. Refusing only
@@ -1262,7 +1275,7 @@ const Store = (function () {
     if (writing || !pending) return !lastError;
     writing = true; pending = false; emit();
     try {
-      await adapter.save(DB);
+      await adapter.save(doc || DB);
       lastError = null; savedAt = Date.now();
     } catch (e) {
       const full = e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
@@ -1272,7 +1285,7 @@ const Store = (function () {
       pending = true;
     }
     writing = false; emit();
-    if (pending && !lastError) return flush();
+    if (pending && !lastError) return flush(doc);
     return !lastError;
   }
 
@@ -1280,16 +1293,28 @@ const Store = (function () {
     use(a) { adapter = a; },
     get backend() { return adapter.name; },
     async init() {
-      let raw = null;
-      loadFailed = false;
+      let raw = null, failed = false;
       try { raw = await adapter.load(); }
-      catch (e) { raw = null; loadFailed = true; }
+      catch (e) { raw = null; failed = true; }
+      return this.settle(raw, failed);
+    },
+    /*  The part of init() after the read, split out so the self-test can drive
+        it without a real load. Flags are set before the first await.        */
+    async settle(raw, failed) {
+      loadFailed = !!failed;
       const migrated = migrateDB(raw);
+      ready = true;
       /*  Only write back when the load actually succeeded. An account we could
           not read is not an empty account, and migrateDB() cannot tell the
           difference — handed nothing, it returns a default database with
-          changed=true, which the old code then saved straight over the top.  */
-      if (migrated.changed && !loadFailed) { pending = true; await flush(); }
+          changed=true, which the old code then saved straight over the top.
+
+          And write the MIGRATED document. This used to call flush() bare,
+          which saves the global DB — still the blank default at this point,
+          because startApp() only assigns DB once init() returns. Every load
+          that tidied or upgraded the data wrote defaults over the stored
+          record, leaving the real data only in memory until the next save. */
+      if (migrated.changed && !loadFailed) { pending = true; await flush(migrated.db); }
       return migrated.db;
     },
     get loadFailed() { return loadFailed; },
@@ -1303,7 +1328,8 @@ const Store = (function () {
       set(k, v) { try { localStorage.setItem('mos_' + k, String(v)); } catch (e) {} }
     }
   };
-})();
+}
+const Store = makeStore(localAdapter);
 
 // ── Schema: defaults, validation, versioned migration ──────────────────────
 function defaultCountdown() { return { label: 'Masters begins in', targetDate: '2026-09-01', startDate: '2026-06-29' }; }
@@ -4181,7 +4207,19 @@ window.MOS = {
        phaseTracks().every(p => !isKey(p.startDate)) &&
        !_seq.some(e => phaseTracks().some(t => t.id === e.phase.id)));
     ok('every focus area has an endedOn field', DB.focus.every(f => 'endedOn' in f));
-    ok('archived areas are excluded from the live list', liveAreas().every(f => !f.endedOn));
+    ok('archived areas are excluded from the live list', (() => {
+      /*  Against the default data this check was vacuous — nothing is
+          archived, so every(!endedOn) held whether liveAreas() filtered or
+          not. Deleting the filter entirely still passed. Scratch copy.   */
+      const realFocus = DB.focus;
+      try {
+        const A = [0,1,2,3,4,5,6];
+        DB.focus = [{id:'_l1',title:'live',activeDays:A,tasks:[],endedOn:null},
+                    {id:'_l2',title:'gone',activeDays:A,tasks:[],endedOn:'2026-07-01'}];
+        const live = liveAreas();
+        return live.length === 1 && live[0].id === '_l1';
+      } finally { DB.focus = realFocus; }
+    })());
     /*  The guarantee the whole v7 change exists for: archiving must not move a
         single past score, while deleting does. Runs on a scratch copy of the
         two fields it touches, restored in a finally block.                   */
@@ -4230,6 +4268,39 @@ window.MOS = {
            return areasInWindow(lastNDayKeys(7)).length === 1;
          } finally { DB.focus = realFocus; }
        })());
+
+    // ── Store: what gets written on load ───────────────────────────────────
+    /*  Throwaway stores around a fake adapter that records what it is given.
+        The guards and the first save all run before flush() first awaits,
+        so the record is final by the time these calls return.             */
+    const recorder = () => {
+      const log = [];
+      return { log, adapter: { name: 'test', load: async () => null, save: async d => { log.push(d); } } };
+    };
+    ok('saving on load writes the loaded data, not the blank default', (() => {
+      const rec = recorder();
+      // A junk check-in key makes migrateDB report a change, forcing a save.
+      const doc = { version: SCHEMA_VERSION, checkins: { 'not-a-date': {} }, focus: [], plan: [],
+                    countdown: { label: '_test', targetDate: '2027-01-01', startDate: '2026-09-01' },
+                    marathon: { raceName: 'T', raceDate: '2027-04-13', runs: [{ id: '_r1', km: 5, date: '2026-07-01' }] } };
+      makeStore(rec.adapter).settle(doc, false);
+      const saved = rec.log[0];
+      return rec.log.length === 1 && saved !== DB && saved.countdown.label === '_test' &&
+             saved.marathon.runs.length === 1 && !('not-a-date' in saved.checkins);
+    })());
+    ok('nothing is saved before the stored data has loaded', (() => {
+      const rec = recorder();
+      const s = makeStore(rec.adapter);
+      s.save(); s.saveNow(); s.retry();
+      return rec.log.length === 0;
+    })());
+    ok('a failed load still blocks every write', (() => {
+      const rec = recorder();
+      const s = makeStore(rec.adapter);
+      s.settle(null, true);
+      s.save(); s.saveNow(); s.retry();
+      return s.loadFailed && rec.log.length === 0;
+    })());
 
     const failed = results.filter(r => !r.pass);
     results.forEach(r => console.log((r.pass ? '\u2713 ' : '\u2717 ') + r.name + (r.detail ? '  \u2192 ' + r.detail : '')));
