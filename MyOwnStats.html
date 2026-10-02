@@ -329,6 +329,8 @@ button, input, select, textarea { font-family: inherit; }
   }
   .dot { width: 34px; height: 34px; }
   .tab { padding: 12px 2px 12px; font-size: 13px; }
+  .run-del { min-width: 34px; min-height: 34px; }
+  .sf-group .mood-btn { min-height: 34px; }
 }
 
 /* Honour the OS "reduce motion" setting. */
@@ -454,6 +456,76 @@ button, input, select, textarea { font-family: inherit; }
 .run-date { flex: 1; color: var(--dim); }
 .run-del { color: var(--dim); background: none; border: none; cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 4px; }
 .run-del:hover { color: var(--red); }
+
+/* Training sessions (schema v8). Each list row opens the session for editing. */
+.sess-open { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; background: none; border: none; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.sess-open .run-km { min-width: 64px; }
+.sess-open .run-date { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sess-open:hover .run-km { color: var(--accent); }
+.sess-meta { color: var(--muted); white-space: nowrap; }
+.sess-status { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--dim); border: 1px solid var(--border2); border-radius: 4px; padding: 1px 5px; }
+
+/* Session form. Effort (RPE) is intensity, not quality, so it uses the teal
+   accent and neutrals only — red/amber/green carry scoring meaning in MOS,
+   and a hard session is not a bad one. "How it felt" IS quality, so it
+   reuses the check-in rating dots and their colours.                      */
+.sf-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.sf-rpe { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; justify-items: center; }
+.rpe-btn { width: 100%; max-width: 34px; aspect-ratio: 1; border-radius: 50%; border: 1px solid var(--border2); background: rgba(255,255,255,0.06); color: var(--dim); font-size: 11px; font-weight: 600; font-family: var(--font-mono); cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.rpe-btn:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+.rpe-btn.on { background: var(--accent); color: var(--bg); border-color: transparent; }
+.sf-felt .dot { padding: 0; font-family: var(--font-mono); }
+/* Overview Training card: 2×2 on phones, 4 across when there is room. */
+.trc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.trc-stat { background: rgba(255,255,255,0.06); border-radius: 8px; padding: 10px; text-align: center; }
+.trc-num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: #fff; }
+.trc-lbl { font-size: 10px; color: var(--dim); margin-top: 2px; }
+.trc-note { font-size: 9px; color: var(--dim); margin-top: 2px; }
+.trc-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 7px 10px; font-size: 11px; color: var(--muted); cursor: pointer; font-family: var(--font-sans); }
+.trc-btn:hover { color: #fff; }
+@media (max-width: 480px) { .trc-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (pointer: coarse) { .trc-btn { min-height: 34px; } }
+
+/* Check-in nudge: one quiet line, not a banner. */
+.ci-nudge { display: block; width: 100%; text-align: left; background: none; border: 1px dashed var(--border2); border-radius: var(--radius); padding: 9px 12px; margin-bottom: 10px; font-size: 12px; color: var(--muted); cursor: pointer; font-family: var(--font-sans); }
+.ci-nudge:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+.ci-nudge b { color: var(--accent); font-weight: 600; }
+
+/* Training tab. Load bars are teal on a neutral track — never coloured by
+   risk: the tab shows figures, not verdicts.                             */
+.tr-log { width: 100%; background: var(--accent); border: none; border-radius: var(--radius); padding: 11px 14px; font-size: 13px; font-weight: 600; font-family: var(--font-mono); letter-spacing: 0.5px; cursor: pointer; color: var(--bg); margin-bottom: 0.25rem; }
+.tr-card { padding: 10px 16px 12px; margin-bottom: 1.25rem; }
+.tr-sub { font-size: 12px; color: var(--dim); line-height: 1.5; margin: 4px 0 6px; }
+.tr-list { margin-top: 0; border-top: none; padding-top: 0; }
+.tr-list:empty { display: none; }
+.tr-empty { font-size: 12px; color: var(--dim); padding: 6px 0; }
+#tr-overdue-wrap .slbl { margin-top: 1.25rem; }
+.tr-list li.has-acts { flex-wrap: wrap; row-gap: 6px; }
+.tr-acts { display: flex; gap: 6px; width: 100%; justify-content: flex-end; }
+.tr-act { background: none; border: 1px solid var(--border2); border-radius: 6px; padding: 4px 9px; font-size: 11px; color: var(--muted); cursor: pointer; font-family: var(--font-sans); white-space: nowrap; }
+.tr-act:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+/* Read by screen readers, not drawn. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.tr-load { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.tr-load-row { display: grid; grid-template-columns: 74px 1fr 52px; gap: 8px; align-items: center; font-size: 12px; }
+.tr-load-wk { color: var(--muted); white-space: nowrap; }
+.tr-load-wk.cur { color: #fff; font-weight: 600; }
+.tr-load-track { height: 10px; border-radius: 5px; background: rgba(255,255,255,0.06); overflow: hidden; }
+.tr-load-bar { height: 100%; border-radius: 5px; background: var(--accent); opacity: 0.85; }
+.tr-load-val { font-family: var(--font-mono); font-weight: 700; color: #fff; text-align: right; }
+.tr-load-note { grid-column: 2 / 4; font-size: 11px; color: var(--dim); margin-top: -4px; }
+.tr-num { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: #fff; }
+.tr-num-lbl { font-size: 10px; color: var(--dim); margin-top: 2px; }
+.tr-more { margin-top: 8px; width: 100%; background: none; border: 1px solid var(--border2); border-radius: 6px; padding: 7px; font-size: 12px; color: var(--muted); cursor: pointer; font-family: var(--font-sans); }
+.tr-more:hover { color: #fff; }
+@media (pointer: coarse) {
+  .tr-act { min-height: 34px; padding: 4px 12px; }
+  .tr-more { min-height: 40px; }
+}
+@media (max-width: 480px) {
+  .sf-rpe { grid-template-columns: repeat(6, 1fr); row-gap: 6px; }
+  .rpe-btn { max-width: 40px; }
+}
 .banner-act {
   background: none; border: 1px solid var(--border2); border-radius: 6px;
   padding: 4px 10px; margin-left: 8px;
@@ -584,6 +656,7 @@ button, input, select, textarea { font-family: inherit; }
   <div class="tabs" role="tablist" aria-label="Sections">
     <button class="tab active" role="tab" aria-selected="true" aria-controls="overview" data-tab="overview" onclick="switchTab('overview',this)">Overview</button>
     <button class="tab" role="tab" aria-selected="false" aria-controls="checkin" data-tab="checkin" onclick="switchTab('checkin',this)">Check-in</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="training" data-tab="training" onclick="switchTab('training',this)">Training</button>
     <button class="tab" role="tab" aria-selected="false" aria-controls="progress" data-tab="progress" onclick="switchTab('progress',this)">Progress</button>
     <button class="tab" role="tab" aria-selected="false" aria-controls="calendar" data-tab="calendar" onclick="switchTab('calendar',this)">Calendar</button>
     <button class="tab" role="tab" aria-selected="false" aria-controls="plan" data-tab="plan" onclick="switchTab('plan',this)">The plan</button>
@@ -633,11 +706,11 @@ button, input, select, textarea { font-family: inherit; }
       <div id="ov-week-summary" style="font-size:13px;color:var(--muted);line-height:1.6"></div>
     </div>
 
-    <!-- MARATHON TRACKER -->
+    <!-- TRAINING (condensed; the full view is the Training tab) -->
     <div class="glass" style="padding:16px 18px;margin-bottom:1.25rem">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px">Marathon tracker</div>
+          <div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px">Training · this week</div>
           <div style="font-size:14px;font-weight:600;color:#fff" id="mar-name">Rotterdam Marathon · April 2027</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
@@ -647,27 +720,17 @@ button, input, select, textarea { font-family: inherit; }
           </div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
-        <div style="background:rgba(255,255,255,0.06);border-radius:8px;padding:10px;text-align:center">
-          <div style="font-family:var(--font-mono);font-size:22px;font-weight:700;color:#fff" id="mar-week-km">0</div>
-          <div style="font-size:10px;color:var(--dim);margin-top:2px">km last 7 days</div>
-        </div>
-        <div style="background:rgba(255,255,255,0.06);border-radius:8px;padding:10px;text-align:center">
-          <div style="font-family:var(--font-mono);font-size:22px;font-weight:700;color:#fff" id="mar-total-km">0</div>
-          <div style="font-size:10px;color:var(--dim);margin-top:2px">km total</div>
-        </div>
-        <div style="background:rgba(255,255,255,0.06);border-radius:8px;padding:10px;text-align:center">
-          <div style="font-family:var(--font-mono);font-size:22px;font-weight:700;color:#fff" id="mar-longest">0</div>
-          <div style="font-size:10px;color:var(--dim);margin-top:2px">km longest run</div>
-        </div>
+      <div class="trc-grid">
+        <div class="trc-stat"><div class="trc-num" id="trc-sessions">0</div><div class="trc-lbl">sessions</div></div>
+        <div class="trc-stat"><div class="trc-num" id="trc-minutes">0</div><div class="trc-lbl">minutes</div></div>
+        <div class="trc-stat"><div class="trc-num" id="trc-load">0</div><div class="trc-lbl">load</div><div class="trc-note hidden" id="trc-load-note"></div></div>
+        <div class="trc-stat"><div class="trc-num" id="trc-km">0</div><div class="trc-lbl">run km</div></div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <input type="number" id="mar-km-inp" placeholder="Distance (km)" aria-label="Run distance in kilometres" min="0.1" max="200" step="0.1" onkeydown="if(event.key==='Enter')logRun()" style="flex:1 1 110px;min-width:0;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:7px 10px;font-size:13px;font-family:var(--font-sans);color:#fff;outline:none">
-        <input type="date" id="mar-date-inp" aria-label="Date of run" style="flex:0 1 140px;min-width:0;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:7px 8px;font-size:12px;font-family:var(--font-sans);color:#fff;outline:none">
-        <button onclick="logRun()" style="background:var(--accent);border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;font-family:var(--font-mono);letter-spacing:0.5px;cursor:pointer;color:var(--bg)">Log run</button>
-        <button onclick="setRaceDate()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:7px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:var(--font-sans)">Set race</button>
+        <button type="button" onclick="openSessionForm()" style="flex:1 1 auto;background:var(--accent);border:none;border-radius:6px;padding:9px 14px;font-size:13px;font-weight:600;font-family:var(--font-mono);letter-spacing:0.5px;cursor:pointer;color:var(--bg)">+ Log session</button>
+        <button type="button" class="trc-btn" onclick="setRaceDate()">Set race</button>
+        <button type="button" class="trc-btn" onclick="openTrainingTab()">See all →</button>
       </div>
-      <ul class="run-list hidden" id="mar-run-list"></ul>
       <div style="margin-top:10px">
         <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-bottom:4px"><span>Training progress</span><span id="mar-pct-lbl">0% to race day</span></div>
         <div class="pbar"><div class="pbar-fill" id="mar-pbar" style="background:var(--green)"></div></div>
@@ -681,6 +744,9 @@ button, input, select, textarea { font-family: inherit; }
 
   <!-- CHECK-IN -->
   <div id="checkin" class="section">
+    <!-- Filled by updateTrainingNudge(), which touches only this element —
+         never the check-in form, which may hold unsaved ratings. -->
+    <button type="button" id="ci-train-nudge" class="ci-nudge hidden" onclick="rateNextSession()"></button>
     <div id="locked-banner" class="locked-banner hidden"></div>
     <div class="ci-card glass">
       <div class="ci-title">Daily check-in</div>
@@ -730,6 +796,41 @@ button, input, select, textarea { font-family: inherit; }
       <div class="leg-item"><div class="leg-dot" style="background:var(--amber)"></div>2 = okay</div>
       <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>3 = solid</div>
       <div class="leg-item"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.07);color:var(--dim);border:1px solid var(--border)">N/A</span> not active today</div>
+    </div>
+  </div>
+
+  <!-- TRAINING (schema v8) -->
+  <div id="training" class="section">
+    <button type="button" class="tr-log" onclick="openSessionForm()">+ Log session</button>
+
+    <div id="tr-overdue-wrap" class="hidden">
+      <div class="slbl" id="tr-overdue-h">Needs attention</div>
+      <div class="glass tr-card">
+        <div class="tr-sub">Planned for a day that has passed. Mark each one done or skipped — MOS never decides for you.</div>
+        <ul class="run-list tr-list" id="tr-overdue" aria-labelledby="tr-overdue-h"></ul>
+      </div>
+    </div>
+
+    <div class="slbl" id="tr-upcoming-h">Upcoming</div>
+    <div class="glass tr-card"><ul class="run-list tr-list" id="tr-upcoming" aria-labelledby="tr-upcoming-h"></ul></div>
+
+    <div class="slbl" id="tr-load-h">Weekly load</div>
+    <div class="glass tr-card">
+      <div class="tr-sub">Load = effort × minutes, so rehab, gym and running count in the same units. Figures only — no targets, no verdicts.</div>
+      <ul class="tr-load" id="tr-load" aria-labelledby="tr-load-h"></ul>
+    </div>
+
+    <div class="slbl">Running</div>
+    <div class="glass tr-card" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
+      <div><div class="tr-num" id="tr-km-week">0.0</div><div class="tr-num-lbl">km this week</div></div>
+      <div><div class="tr-num" id="tr-km-total">0.0</div><div class="tr-num-lbl">km total</div></div>
+      <div><div class="tr-num" id="tr-km-longest">0.0</div><div class="tr-num-lbl">km longest run</div></div>
+    </div>
+
+    <div class="slbl" id="tr-history-h">History</div>
+    <div class="glass tr-card">
+      <ul class="run-list tr-list" id="tr-history" aria-labelledby="tr-history-h"></ul>
+      <button type="button" class="tr-more hidden" id="tr-more" onclick="showMoreHistory()">Show more</button>
     </div>
   </div>
 
@@ -965,6 +1066,10 @@ button, input, select, textarea { font-family: inherit; }
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
     <span>Check-in</span>
   </button>
+  <button class="btab" role="tab" aria-selected="false" aria-controls="training" data-tab="training" onclick="switchTab('training',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>
+    <span>Training</span>
+  </button>
   <button class="btab" role="tab" aria-selected="false" aria-controls="progress" data-tab="progress" onclick="switchTab('progress',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
     <span>Progress</span>
@@ -988,6 +1093,15 @@ button, input, select, textarea { font-family: inherit; }
     <button class="gate-btn" onclick="location.reload()">Try again</button>
     <button class="gate-alt" onclick="signOut()">Sign in as someone else</button>
     <div class="gate-foot">Usually a connection problem or an incomplete sign-in. If it keeps happening, open MOS on a device where your history shows and export a backup.</div>
+  </div>
+</div>
+
+<div id="too-new" class="gate hidden">
+  <div class="gate-box">
+    <div class="gate-title">This copy of MOS is out of date</div>
+    <div class="gate-sub">Your data was saved by a newer version of MOS than the one open here. <strong>Nothing has been saved over it</strong> — MOS won't write anything from this session.</div>
+    <button class="gate-btn" onclick="location.reload()">Reload</button>
+    <div class="gate-foot">On iPhone: swipe MOS away in the app switcher, then open it again. On a computer: reload the page, holding Shift if it comes back here.</div>
   </div>
 </div>
 
@@ -1084,7 +1198,7 @@ function fmtKey(ds, opts) { return parseKey(ds).toLocaleDateString('en-GB', opts
 //  Writes are queued and awaited, so swapping `localAdapter` for a Supabase
 //  adapter with the same three async methods is the entire migration surface.
 // ═══════════════════════════════════════════════════════════════════════════
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 const DB_KEY = 'mos_v5', LEGACY_KEY = 'mos_v4', LEGACY_MAR_KEY = 'mos_marathon';
 
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
@@ -1234,7 +1348,7 @@ const cloudAdapter = {
     the live store's adapter or flags.                                       */
 function makeStore(initialAdapter) {
   let adapter = initialAdapter;
-  let pending = false, writing = false, lastError = null, savedAt = 0, loadFailed = false;
+  let pending = false, writing = false, lastError = null, savedAt = 0, loadFailed = false, tooNew = false;
   /*  False until the stored data has been read. Before that the in-memory DB
       is the blank default from page load, not the user's data — the same
       reason loadFailed blocks writes. A save fired in that window (the page
@@ -1272,6 +1386,14 @@ function makeStore(initialAdapter) {
       pending = false; emit();
       return false;
     }
+    /*  Same refusal for data written by a newer MOS. This copy does not know
+        that shape; saving would stamp it back down to an older version and
+        drop whatever it does not understand.                                */
+    if (tooNew) {
+      lastError = 'Not saving — your data is from a newer version of MOS.';
+      pending = false; emit();
+      return false;
+    }
     if (writing || !pending) return !lastError;
     writing = true; pending = false; emit();
     try {
@@ -1303,6 +1425,7 @@ function makeStore(initialAdapter) {
     async settle(raw, failed) {
       loadFailed = !!failed;
       const migrated = migrateDB(raw);
+      tooNew = !!migrated.tooNew;
       ready = true;
       /*  Only write back when the load actually succeeded. An account we could
           not read is not an empty account, and migrateDB() cannot tell the
@@ -1314,10 +1437,11 @@ function makeStore(initialAdapter) {
           because startApp() only assigns DB once init() returns. Every load
           that tidied or upgraded the data wrote defaults over the stored
           record, leaving the real data only in memory until the next save. */
-      if (migrated.changed && !loadFailed) { pending = true; await flush(migrated.db); }
+      if (migrated.changed && !loadFailed && !tooNew) { pending = true; await flush(migrated.db); }
       return migrated.db;
     },
     get loadFailed() { return loadFailed; },
+    get tooNew() { return tooNew; },
     save() { pending = true; emit(); flush(); },
     async saveNow() { pending = true; return flush(); },
     async retry() { lastError = null; pending = true; emit(); return flush(); },
@@ -1336,7 +1460,7 @@ function defaultCountdown() { return { label: 'Masters begins in', targetDate: '
 function defaultMarathon() { return { raceName: 'Rotterdam Marathon · April 2027', raceDate: '2027-04-13', runs: [] }; }
 function defaultDB() {
   return { version: SCHEMA_VERSION, checkins: {}, focus: clone(DEF_FOCUS), plan: clone(DEF_PLAN),
-           countdown: defaultCountdown(), marathon: defaultMarathon() };
+           countdown: defaultCountdown(), marathon: defaultMarathon(), sessions: [] };
 }
 
 function cleanCheckin(c) {
@@ -1367,9 +1491,54 @@ function cleanRun(r) {
   return { id: r.id || uid(), km: Math.round(km * 100) / 100, date: date };
 }
 
+/*  Training sessions (schema v8). Minutes is the one unit every type shares;
+    distance is only meaningful — and only totalled — within run, swim, cycle.
+    This is the only way a session enters DB: form, migration, import and JSON
+    restore all pass through it. RPE 0 is a real value, so every check below
+    tests for null rather than falsiness.                                    */
+const SESSION_TYPES = ['run', 'gym', 'rehab', 'mobility', 'swim', 'cycle', 'other'];
+const DISTANCE_TYPES = ['run', 'swim', 'cycle'];
+function cleanSession(s) {
+  if (!s || typeof s !== 'object') return null;
+  const int = (v, lo, hi) => {
+    if (v == null || v === '' || typeof v === 'boolean') return null;
+    const n = Math.round(Number(v));
+    return Number.isFinite(n) && n >= lo && n <= hi ? n : null;
+  };
+  const type = SESSION_TYPES.includes(s.type) ? s.type : 'other';
+  const date = isKey(s.date) ? s.date : todayKey();
+  let km = null;
+  if (DISTANCE_TYPES.includes(type) && s.km != null && s.km !== '' && typeof s.km !== 'boolean') {
+    const k = Math.round(Number(s.km) * 100) / 100;
+    if (Number.isFinite(k) && k >= 0.01 && k <= 500) km = k;
+  }
+  return {
+    // Stringified, so a numeric run id still matches itself on the next load.
+    id: (s.id != null && s.id !== '') ? String(s.id) : uid(),
+    date,
+    type,
+    status: ['planned', 'done', 'skipped'].includes(s.status) ? s.status
+          : (date > todayKey() ? 'planned' : 'done'),
+    minutes: int(s.minutes, 1, 600),
+    km,
+    rpe: int(s.rpe, 0, 10),
+    felt: int(s.felt, 1, 3),
+    note: typeof s.note === 'string' ? s.note.trim().slice(0, 500) : '',
+    source: ['manual', 'migrated', 'import'].includes(s.source) ? s.source : 'manual',
+    externalId: (typeof s.externalId === 'string' && s.externalId) ? s.externalId : null,
+    dismissed: s.dismissed === true
+  };
+}
+
 function migrateDB(raw) {
   let changed = false;
   if (!raw || typeof raw !== 'object') return { db: defaultDB(), changed: true };
+  /*  Written by a newer MOS. Touch nothing: stamping it down to this version
+      is exactly how an older cached copy would quietly corrupt it. The Store
+      refuses to write, and the app says why.                                */
+  if (Number.isFinite(raw.version) && raw.version > SCHEMA_VERSION) {
+    return { db: raw, changed: false, tooNew: true };
+  }
   const db = raw;
 
   if (!db.checkins || typeof db.checkins !== 'object') { db.checkins = {}; changed = true; }
@@ -1466,8 +1635,41 @@ function migrateDB(raw) {
 
   // Normalise + validate every record on the way in.
   if (!db.marathon || typeof db.marathon !== 'object') { db.marathon = defaultMarathon(); changed = true; }
+  // A run with no stored id is given one by cleanRun(); save it, or the next
+  // load would invent a different id and the v8 step below would add it twice.
+  if (Array.isArray(db.marathon.runs) && db.marathon.runs.some(r => r && typeof r === 'object' && !r.id)) changed = true;
   db.marathon.runs = (Array.isArray(db.marathon.runs) ? db.marathon.runs : []).map(cleanRun).filter(Boolean);
   if (!isKey(db.marathon.raceDate)) { db.marathon.raceDate = defaultMarathon().raceDate; changed = true; }
+
+  /*  v7 → v8: runs become sessions. Additive and idempotent, and run on EVERY
+      load rather than only when upgrading from v7.
+
+      A home-screen iPhone keeps its cached copy of MOS until it is closed from
+      the app switcher, so after deploy a v7 phone can load this record, stamp
+      it back to v7 and save — logging runs into marathon.runs as it goes.
+      `sessions` survives that (migrateDB edits in place), and this step then
+      picks up whatever the old copy added, once each, by id.
+
+      marathon.runs is frozen: never written or pruned by v8 code. Because a
+      run is re-added whenever no session holds its id, a migrated session is
+      never removed — deleting one sets `dismissed`, so it stays deleted.    */
+  if (!Array.isArray(db.sessions)) { db.sessions = []; changed = true; }
+  const seenSession = {};
+  db.sessions = db.sessions.map(s => {
+    if (s && typeof s === 'object' && (s.id == null || s.id === '')) changed = true;
+    return cleanSession(s);
+  }).filter(s => {
+    if (!s || seenSession[s.id]) { changed = true; return false; }
+    return (seenSession[s.id] = true);
+  });
+  db.marathon.runs.forEach(r => {
+    const id = String(r.id);
+    if (seenSession[id]) return;
+    db.sessions.push(cleanSession({ id, date: r.date, type: 'run', status: 'done', km: r.km,
+                                    minutes: null, rpe: null, felt: null, source: 'migrated' }));
+    seenSession[id] = true;
+    changed = true;
+  });
 
   if (!db.countdown || typeof db.countdown !== 'object') { db.countdown = defaultCountdown(); changed = true; }
   if (!isKey(db.countdown.targetDate)) { db.countdown.targetDate = defaultCountdown().targetDate; changed = true; }
@@ -1699,6 +1901,10 @@ function importData(e) {
     // Run the incoming file through the same migration + validation path as a
     // normal load, so an old or hand-edited backup can never poison the DB.
     const result = migrateDB(data);
+    if (result.tooNew) {
+      toast('This backup was made by a newer version of MOS. Close MOS fully, reopen it, then import again. Nothing was changed.', {type:'error'});
+      return;
+    }
     const incoming = result.db;
     const incomingDays = Object.keys(incoming.checkins).length;
     const currentDays = Object.keys(DB.checkins).length;
@@ -1709,7 +1915,7 @@ function importData(e) {
     const ok = confirm(
       `Replace everything on this device with this backup?\n\n` +
       `Backup: ${incomingDays} days logged, ${incoming.focus.length} focus areas, ` +
-      `${(incoming.marathon.runs||[]).length} runs.\n` +
+      `${(incoming.sessions||[]).filter(s => !s.dismissed).length} training sessions.\n` +
       `On this device right now: ${currentDays} days logged.` + warning +
       `\n\nA rollback copy of your current data is kept automatically.`
     );
@@ -1747,7 +1953,8 @@ function switchTab(tab, btn) {
   if(tab==='progress') renderProgress();
   if(tab==='calendar'){renderCalendar();renderOnePct();}
   if(tab==='plan') renderPlan();
-  if(tab==='checkin') renderCheckinOnEntry();
+  if(tab==='checkin') { renderCheckinOnEntry(); updateTrainingNudge(); }
+  if(tab==='training') renderTraining();
 }
 function activeTabId() {
   const el = document.querySelector('.section.active');
@@ -2535,8 +2742,7 @@ function renderWeekSummary() {
   // UTC midnight, which shifts the window by the local offset and could count
   // a run into the wrong week — the bug the 2 August date pass removed
   // everywhere else.
-  const mar = getMarData();
-  const weekKm = (mar.runs||[]).filter(r=>weekKeys.includes(r.date)).reduce((a,r)=>a+r.km,0);
+  const weekKm = runKm(weekKeys);
 
   // Per-area performance this week — find best and worst area
   const areaScores = {};
@@ -3584,27 +3790,228 @@ function getMarData() {
   return DB.marathon;
 }
 
+// ── TRAINING SESSIONS (schema v8) ────────────────────────────────────────────
+// Model layer only. Every reader skips dismissed sessions; nothing here judges
+// a session — no pace scoring, no load verdicts.
+function getSessions() {
+  if (!Array.isArray(DB.sessions)) DB.sessions = [];
+  return DB.sessions;
+}
+function visibleSessions() { return getSessions().filter(s => !s.dismissed); }
+
+// Non-dismissed sessions on one calendar day, in any status.
+function sessionsOn(key) { return visibleSessions().filter(s => s.date === key); }
+
+// RPE × minutes, for done sessions that carry both. Planned and skipped
+// sessions, and migrated runs with no minutes or RPE, carry no load.
+function sessionLoad(s) {
+  if (!s || s.status !== 'done' || s.rpe == null || s.minutes == null) return null;
+  return s.rpe * s.minutes;
+}
+
+// Load for the Monday–Sunday week starting `mondayKey`, plus how many done
+// sessions that week were left out for lacking RPE or minutes.
+function weekLoad(mondayKey) {
+  const keys = {};
+  for (let i = 0; i < 7; i++) keys[shiftKey(mondayKey, i)] = true;
+  let load = 0, excluded = 0;
+  visibleSessions().forEach(s => {
+    if (s.status !== 'done' || !keys[s.date]) return;
+    const l = sessionLoad(s);
+    if (l == null) excluded++; else load += l;
+  });
+  return { load, excluded };
+}
+
+// Running km only. Cycling and swimming distance is never added to it.
+function runKm(keys) {
+  const want = {};
+  keys.forEach(k => { want[k] = true; });
+  const km = visibleSessions()
+    .filter(s => s.type === 'run' && s.status === 'done' && s.km != null && want[s.date])
+    .reduce((a, s) => a + s.km, 0);
+  return Math.round(km * 100) / 100;
+}
+
+/*  Removes a session and returns a function that puts it back (for the undo
+    toast). Only hand-entered sessions are truly removed. Migrated ones are
+    hidden instead: their run is still in the frozen marathon.runs, and the
+    v8 migration would re-add any run whose id no session holds. Imported ones
+    (part 2) likewise, or the next sync would bring them back.              */
+function discardSession(id) {
+  const list = getSessions();
+  const idx = list.findIndex(s => s.id === id);
+  if (idx === -1) return null;
+  const s = list[idx];
+  if (s.source === 'manual') {
+    list.splice(idx, 1);
+    return () => { getSessions().splice(Math.min(idx, getSessions().length), 0, s); };
+  }
+  const was = s.dismissed;
+  s.dismissed = true;
+  return () => { s.dismissed = was; };
+}
+
+const SESSION_LABELS = { run: 'Run', gym: 'Gym', rehab: 'Rehab', mobility: 'Mobility', swim: 'Swim', cycle: 'Cycle', other: 'Other' };
+const SESSION_STATUS_LABELS = { done: 'Done', planned: 'Planned', skipped: 'Skipped' };
+
+/*  Monday to Sunday of the current week. Every training "this week" figure
+    uses it, so the card's km and the load bars never describe two different
+    weeks. Check-in figures keep their rolling last 7 days.               */
+function thisWeekKeys() {
+  const mon = weekStartKey(todayKey());
+  return [0, 1, 2, 3, 4, 5, 6].map(i => shiftKey(mon, i));
+}
+
+// Running figures. Done runs only — cycling and swimming distance is never
+// mixed in, and planned runs have not happened.
+function runStats() {
+  const runs = visibleSessions().filter(s => s.type === 'run' && s.status === 'done' && s.km != null);
+  const total = Math.round(runs.reduce((a, s) => a + s.km, 0) * 100) / 100;
+  return {
+    week: runKm(thisWeekKeys()),
+    total,
+    longest: runs.length ? Math.max(...runs.map(s => s.km)) : 0
+  };
+}
+
+// The Monday of the calendar week containing `key`. getDow() is 0 for Sunday.
+function weekStartKey(key) {
+  return shiftKey(key, -((getDow(key) + 6) % 7));
+}
+
+// The current week and the n-1 before it, oldest first, each with its load
+// and how many done sessions were left out for lacking effort or minutes.
+function loadWeeks(n) {
+  const cur = weekStartKey(todayKey());
+  const out = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const monday = shiftKey(cur, -7 * i);
+    out.push(Object.assign({ monday, current: i === 0 }, weekLoad(monday)));
+  }
+  return out;
+}
+
+// Sorted by date, keeping entry order on a tie (the order they were added).
+function sessionsByDate(list, newestFirst) {
+  return list.map((s, i) => ({ s, i }))
+    .sort((a, b) => {
+      if (a.s.date !== b.s.date) return (a.s.date < b.s.date ? -1 : 1) * (newestFirst ? -1 : 1);
+      return newestFirst ? b.i - a.i : a.i - b.i;
+    })
+    .map(x => x.s);
+}
+
+/*  The Training tab's three lists. Every visible session lands in exactly
+    one: planned today-or-later, planned in the past, or done/skipped. A past
+    planned session is never resolved automatically — only by the owner.   */
+function upcomingSessions() {
+  const t = todayKey();
+  return sessionsByDate(visibleSessions().filter(s => s.status === 'planned' && s.date >= t), false);
+}
+function overdueSessions() {
+  const t = todayKey();
+  return sessionsByDate(visibleSessions().filter(s => s.status === 'planned' && s.date < t), false);
+}
+function historySessions() {
+  return sessionsByDate(visibleSessions().filter(s => s.status !== 'planned'), true);
+}
+
+/*  Resolves a session's status and returns a function that undoes it, or
+    null if the change is not allowed. Same rules as the form: a future
+    session can only be planned, and only a done session keeps its effort
+    and feel ratings.                                                    */
+function setSessionStatus(id, status) {
+  const s = getSessions().find(x => x.id === id);
+  if (!s || !['planned', 'done', 'skipped'].includes(status)) return null;
+  if (status !== 'planned' && s.date > todayKey()) return null;
+  const prev = { status: s.status, rpe: s.rpe, felt: s.felt };
+  s.status = status;
+  if (status !== 'done') { s.rpe = null; s.felt = null; }
+  return () => { Object.assign(s, prev); };
+}
+
+// The Overview card's figures: done sessions in this calendar week.
+function trainingWeek() {
+  const keys = thisWeekKeys();
+  const done = visibleSessions().filter(s => s.status === 'done' && keys.includes(s.date));
+  const wl = weekLoad(keys[0]);
+  return {
+    sessions: done.length,
+    minutes: done.reduce((a, s) => a + (s.minutes || 0), 0),
+    load: wl.load,
+    excluded: wl.excluded,
+    km: runKm(keys)
+  };
+}
+
+// Done sessions from the last 7 days still missing an effort rating, newest
+// first. Migrated runs count: rating one is how an old run enters load.
+function unratedRecent() {
+  const win = lastNDayKeys(7);
+  return sessionsByDate(visibleSessions().filter(s =>
+    s.status === 'done' && s.rpe == null && win.includes(s.date)), true);
+}
+
+/*  Turns the session form's raw fields into a session, or explains why not.
+    Kept free of the DOM so the self-test can drive it. `existing` is the
+    session being edited: its id, source, externalId and dismissed flag are
+    kept — an edited migrated run is still a migrated run.                  */
+function sessionFromForm(f, existing) {
+  const today = todayKey();
+  if (!isKey(f.date)) return { error: 'Pick a date for the session.' };
+  const type = SESSION_TYPES.includes(f.type) ? f.type : 'other';
+  const status = ['done', 'planned', 'skipped'].includes(f.status) ? f.status
+               : (f.date > today ? 'planned' : 'done');
+  if (status !== 'planned' && f.date > today) {
+    return { error: 'That date is in the future — a future session can only be planned.' };
+  }
+  const blank = v => v == null || String(v).trim() === '';
+  const minutes = blank(f.minutes) ? null : Number(f.minutes);
+  if (minutes !== null && !(Number.isFinite(minutes) && minutes >= 1 && minutes <= 600)) {
+    return { error: 'Minutes must be between 1 and 600.' };
+  }
+  const hasKm = DISTANCE_TYPES.includes(type);
+  const km = (!hasKm || blank(f.km)) ? null : Number(f.km);
+  if (km !== null && !(Number.isFinite(km) && km >= 0.01 && km <= 500)) {
+    return { error: 'Distance must be between 0.01 and 500 km.' };
+  }
+  // Effort and feel describe a session that happened; anything else has none.
+  const done = status === 'done';
+  const session = cleanSession(Object.assign({}, existing || { source: 'manual' }, {
+    type, date: f.date, status, minutes, km,
+    rpe: done ? f.rpe : null,
+    felt: done ? f.felt : null,
+    note: typeof f.note === 'string' ? f.note : ''
+  }));
+  return { session };
+}
+
+// "rehab · 30 min", "run · 5.0 km" — for toasts and screen-reader labels.
+function describeSession(s) {
+  const parts = [SESSION_LABELS[s.type].toLowerCase()];
+  if (s.minutes != null) parts.push(`${s.minutes} min`);
+  if (s.km != null) parts.push(`${s.km.toFixed(1)} km`);
+  return parts.join(' · ');
+}
+
 function updateMarathon() {
   const mar = getMarData();
   const raceKey = isKey(mar.raceDate) ? mar.raceDate : defaultMarathon().raceDate;
   const daysToRace = Math.max(0, daysBetween(todayKey(), raceKey));
-  const runs = mar.runs;
 
   document.getElementById('mar-days').textContent = daysToRace;
   document.getElementById('mar-days-lbl').textContent = daysToRace === 0 ? 'race day!' : 'days to race';
   document.getElementById('mar-name').textContent = mar.raceName || defaultMarathon().raceName;
 
-  // Rolling last 7 calendar days — matches the "last 7 days" framing used by
-  // every other headline number on this tab.
-  const win = lastNDayKeys(7);
-  const weekKm = runs.filter(r => win.includes(r.date)).reduce((a, r) => a + r.km, 0);
-  document.getElementById('mar-week-km').textContent = weekKm.toFixed(1);
-
-  const totalKm = runs.reduce((a, r) => a + r.km, 0);
-  document.getElementById('mar-total-km').textContent = totalKm.toFixed(1);
-
-  const longest = runs.length ? Math.max(...runs.map(r => r.km)) : 0;
-  document.getElementById('mar-longest').textContent = longest.toFixed(1);
+  const w = trainingWeek();
+  document.getElementById('trc-sessions').textContent = w.sessions;
+  document.getElementById('trc-minutes').textContent = w.minutes;
+  document.getElementById('trc-load').textContent = w.load;
+  document.getElementById('trc-km').textContent = w.km.toFixed(1);
+  const note = document.getElementById('trc-load-note');
+  note.textContent = w.excluded ? `+ ${w.excluded} not counted` : '';
+  note.classList.toggle('hidden', !w.excluded);
 
   // Training block: the 12 weeks leading into race day.
   const trainStartKey = shiftKey(raceKey, -84);
@@ -3613,59 +4020,274 @@ function updateMarathon() {
   const pct = Math.round(doneDays / totalDays * 100);
   document.getElementById('mar-pbar').style.width = pct + '%';
   document.getElementById('mar-pct-lbl').textContent = pct + '% to race day';
-
-  renderRunList();
 }
 
-function renderRunList() {
-  const ul = document.getElementById('mar-run-list');
-  if (!ul) return;
-  const runs = getMarData().runs.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-  if (!runs.length) { ul.classList.add('hidden'); ul.innerHTML = ''; return; }
-  ul.classList.remove('hidden');
-  const shown = runs.slice(0, 6);
-  ul.innerHTML = shown.map(r => `<li>
-      <span class="run-km">${r.km.toFixed(1)} km</span>
-      <span class="run-date">${fmtKey(r.date, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-      <button class="run-del" onclick="deleteRun('${escAttr(r.id)}')" title="Delete this run" aria-label="Delete ${r.km.toFixed(1)} kilometre run on ${escAttr(fmtKey(r.date))}">×</button>
-    </li>`).join('') +
-    (runs.length > shown.length ? `<li><span class="run-date">+ ${runs.length - shown.length} earlier runs</span></li>` : '');
+// One row in any session list: the row opens the session for editing, and
+// `extra` holds any action buttons that sit beside it.
+function sessionRowHTML(s, extra, opts) {
+  const day = fmtKey(s.date, { weekday: 'short', day: 'numeric', month: 'short' });
+  const meta = [s.minutes != null ? `${s.minutes} min` : '', s.km != null ? `${s.km.toFixed(1)} km` : '']
+    .filter(Boolean).join(' · ');
+  const status = s.status === 'done' ? '' : SESSION_STATUS_LABELS[s.status];
+  const spoken = `${describeSession(s)}, ${fmtKey(s.date)}${status ? ', ' + status.toLowerCase() : ''}`;
+  // In a list that is all one status, the tag only takes room from the date.
+  const tag = status && !(opts && opts.hideStatus) ? status : '';
+  return `<li${opts && opts.actions ? ' class="has-acts"' : ''}>
+      <button type="button" class="sess-open" onclick="openSessionForm('${escAttr(s.id)}')" aria-label="Edit ${escAttr(spoken)}">
+        <span class="run-km">${esc(SESSION_LABELS[s.type])}</span>
+        <span class="run-date">${esc(day)}</span>
+        ${meta ? `<span class="sess-meta">${esc(meta)}</span>` : ''}
+        ${tag ? `<span class="sess-status">${esc(tag)}</span>` : ''}
+      </button>
+      ${extra || ''}
+    </li>`;
 }
 
-function logRun() {
-  const inp = document.getElementById('mar-km-inp');
-  const dateInp = document.getElementById('mar-date-inp');
-  const km = parseFloat(inp.value);
-  if (!Number.isFinite(km) || km <= 0) { toast('Enter a distance greater than zero.', { type: 'error' }); return; }
-  if (km > 200) { toast('That is over 200 km — check the number.', { type: 'error' }); return; }
-
-  const date = (dateInp && isKey(dateInp.value)) ? dateInp.value : todayKey();
-  if (date > todayKey()) { toast('You cannot log a run in the future.', { type: 'error' }); return; }
-
-  const run = cleanRun({ km, date });
-  const mar = getMarData();
-  mar.runs.push(run);
-  saveDB();
-  inp.value = '';
-  if (dateInp) dateInp.value = todayKey();
+// Redraw everything that shows sessions, whichever tab is open.
+function refreshSessions() {
   updateMarathon();
-  undoToast(`Logged ${run.km.toFixed(1)} km on ${fmtKey(run.date)}.`, () => {
-    const m = getMarData();
-    m.runs = m.runs.filter(r => r.id !== run.id);
-    saveDB(); updateMarathon();
-  });
+  updateTrainingNudge();
+  if (activeTabId() === 'training') renderTraining();
 }
 
-function deleteRun(id) {
-  const mar = getMarData();
-  const idx = mar.runs.findIndex(r => r.id === id);
-  if (idx === -1) return;
-  const removed = mar.runs.splice(idx, 1)[0];
-  saveDB(); updateMarathon();
-  undoToast(`Deleted ${removed.km.toFixed(1)} km run.`, () => {
-    getMarData().runs.splice(idx, 0, removed);
-    saveDB(); updateMarathon();
+/*  The one line on Check-in. Touches only #ci-train-nudge — never the
+    check-in form, which may hold unsaved work (see checkinDirty()).      */
+function updateTrainingNudge() {
+  const el = document.getElementById('ci-train-nudge');
+  if (!el) return;
+  const n = unratedRecent().length;
+  el.classList.toggle('hidden', n === 0);
+  el.innerHTML = n ? `<b>${n} session${n === 1 ? '' : 's'} to rate</b> — effort missing, so ${n === 1 ? 'it is' : 'they are'} left out of your load.` : '';
+}
+
+// From the Overview card: the button sits halfway down the page, so start
+// the Training tab at the top rather than at Overview's scroll position.
+function openTrainingTab() {
+  switchTab('training');
+  window.scrollTo(0, 0);
+}
+
+// Opens the newest unrated session; after saving, the next tap opens the next.
+function rateNextSession() {
+  const next = unratedRecent()[0];
+  if (next) openSessionForm(next.id);
+}
+
+let _historyShown = 20;
+function showMoreHistory() { _historyShown += 20; renderTraining(); }
+
+function renderTraining() {
+  const overdue = overdueSessions();
+  document.getElementById('tr-overdue-wrap').classList.toggle('hidden', overdue.length === 0);
+  document.getElementById('tr-overdue').innerHTML = overdue.map(s => {
+    const what = escAttr(`${describeSession(s)}, ${fmtKey(s.date)}`);
+    return sessionRowHTML(s,
+      `<span class="tr-acts">
+         <button type="button" class="tr-act" onclick="markSession('${escAttr(s.id)}','done')" aria-label="Mark ${what} as done">Done</button>
+         <button type="button" class="tr-act" onclick="markSession('${escAttr(s.id)}','skipped')" aria-label="Mark ${what} as skipped">Skipped</button>
+       </span>`, { hideStatus: true, actions: true });
+  }).join('');
+
+  const upcoming = upcomingSessions();
+  const upEl = document.getElementById('tr-upcoming');
+  upEl.innerHTML = upcoming.map(s => sessionRowHTML(s, '', { hideStatus: true })).join('');
+  setEmpty(upEl, upcoming.length ? '' : 'Nothing planned. Use + Log session and set the status to Planned.');
+
+  const weeks = loadWeeks(8).reverse();   // newest at the top
+  const max = Math.max(1, ...weeks.map(w => w.load));
+  document.getElementById('tr-load').innerHTML = weeks.map(w => {
+    const label = w.current ? 'This week' : 'w/c ' + fmtKey(w.monday, { day: 'numeric', month: 'short' });
+    const spoken = `${w.current ? 'This week so far' : 'Week starting ' + fmtKey(w.monday)}: load ${w.load}` +
+      (w.excluded ? `, ${w.excluded} session${w.excluded === 1 ? '' : 's'} not counted` : '');
+    return `<li>
+      <span class="sr-only">${esc(spoken)}</span>
+      <div class="tr-load-row" aria-hidden="true">
+        <span class="tr-load-wk${w.current ? ' cur' : ''}">${esc(label)}</span>
+        <span class="tr-load-track"><span class="tr-load-bar" style="display:block;width:${Math.round(w.load / max * 100)}%"></span></span>
+        <span class="tr-load-val">${w.load}</span>
+        ${w.excluded ? `<span class="tr-load-note">${w.excluded} session${w.excluded === 1 ? '' : 's'} not counted — no effort or minutes</span>` : ''}
+      </div>
+    </li>`;
+  }).join('');
+
+  const km = runStats();
+  document.getElementById('tr-km-week').textContent = km.week.toFixed(1);
+  document.getElementById('tr-km-total').textContent = km.total.toFixed(1);
+  document.getElementById('tr-km-longest').textContent = km.longest.toFixed(1);
+
+  const history = historySessions();
+  const hEl = document.getElementById('tr-history');
+  hEl.innerHTML = history.slice(0, _historyShown).map(s => sessionRowHTML(s)).join('');
+  setEmpty(hEl, history.length ? '' : 'No sessions logged yet.');
+  document.getElementById('tr-more').classList.toggle('hidden', history.length <= _historyShown);
+}
+
+// An empty list shows one quiet line after it instead of nothing at all.
+function setEmpty(listEl, text) {
+  let note = listEl.nextElementSibling;
+  if (!note || !note.classList.contains('tr-empty')) {
+    note = document.createElement('div');
+    note.className = 'tr-empty';
+    listEl.after(note);
+  }
+  note.textContent = text;
+  note.classList.toggle('hidden', !text);
+}
+
+/*  Resolving a past planned session. "Done" then opens the form so effort
+    and feel can be added straight away — closing it is fine; the session
+    stays done with no ratings, which leaves it out of load.               */
+function markSession(id, status) {
+  const s = getSessions().find(x => x.id === id);
+  if (!s) return;
+  const undo = setSessionStatus(id, status);
+  if (!undo) { toast('That session is in the future — it can only stay planned.', { type: 'error' }); return; }
+  saveDB(); refreshSessions();
+  undoToast(`Marked ${describeSession(s)} as ${status}.`, () => { undo(); saveDB(); refreshSessions(); });
+  if (status === 'done') openSessionForm(id);
+}
+
+// ── Session form ────────────────────────────────────────────────────────────
+// The choices made with buttons live here while the modal is open; the typed
+// fields (date, minutes, km, note) are read from the inputs on save.
+let _sf = null;
+
+function openSessionForm(id) {
+  const existing = id ? getSessions().find(s => s.id === id) : null;
+  if (id && !existing) return;
+  const today = todayKey();
+  _sf = existing
+    ? { id: existing.id, type: existing.type, status: existing.status, rpe: existing.rpe, felt: existing.felt, statusAuto: false }
+    : { id: null, type: 'run', status: 'done', rpe: null, felt: null, statusAuto: true };
+  const v = k => existing && existing[k] != null ? escAttr(existing[k]) : '';
+  showModal(`<div class="modal-title">${existing ? 'Edit session' : 'Log a session'}</div>
+    <div class="modal-field">
+      <div class="modal-lbl" id="sf-type-lbl">Type</div>
+      <div class="sf-group" role="group" aria-labelledby="sf-type-lbl">
+        ${SESSION_TYPES.map(t => `<button type="button" class="mood-btn" data-sf-type="${t}" onclick="sfSet('type','${t}')">${SESSION_LABELS[t]}</button>`).join('')}
+      </div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-lbl" for="sf-date" style="display:block">Date</label>
+      <input class="modal-inp" type="date" id="sf-date" value="${escAttr(existing ? existing.date : today)}" onchange="sfDateChanged()">
+    </div>
+    <div class="modal-field">
+      <div class="modal-lbl" id="sf-status-lbl">Status</div>
+      <div class="sf-group" role="group" aria-labelledby="sf-status-lbl">
+        ${['done', 'planned', 'skipped'].map(st => `<button type="button" class="mood-btn" data-sf-status="${st}" onclick="sfSet('status','${st}')">${SESSION_STATUS_LABELS[st]}</button>`).join('')}
+      </div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-lbl" for="sf-min" style="display:block">Minutes</label>
+      <input class="modal-inp" type="number" id="sf-min" inputmode="numeric" min="1" max="600" step="1" placeholder="e.g. 30" value="${v('minutes')}">
+    </div>
+    <div class="modal-field" id="sf-km-field">
+      <label class="modal-lbl" for="sf-km" style="display:block">Distance (km)</label>
+      <input class="modal-inp" type="number" id="sf-km" inputmode="decimal" min="0.01" max="500" step="0.01" placeholder="e.g. 5.0" value="${v('km')}">
+    </div>
+    <div id="sf-rate">
+      <div class="modal-field">
+        <div class="modal-lbl" id="sf-rpe-lbl">Effort (RPE 0–10)</div>
+        <div class="sf-rpe" role="group" aria-labelledby="sf-rpe-lbl">
+          ${[0,1,2,3,4,5,6,7,8,9,10].map(n => `<button type="button" class="rpe-btn" data-sf-rpe="${n}" aria-label="Effort ${n} of 10" onclick="sfSet('rpe',${n})">${n}</button>`).join('')}
+        </div>
+        <div class="modal-hint">0 rest · 5 moderate · 10 all-out. How hard it was, not how well it went.</div>
+      </div>
+      <div class="modal-field">
+        <div class="modal-lbl" id="sf-felt-lbl">How it felt</div>
+        <div class="dot-row sf-felt" role="group" aria-labelledby="sf-felt-lbl">
+          ${[[1, 'poor'], [2, 'okay'], [3, 'good']].map(([n, w]) => `<button type="button" class="dot" data-sf-felt="${n}" aria-label="Felt ${w}, ${n} of 3" onclick="sfSet('felt',${n})">${n}</button>`).join('')}
+        </div>
+        <div class="modal-hint">1 poor · 2 okay · 3 good — the same scale as check-in ratings.</div>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-lbl" for="sf-note" style="display:block">Note</label>
+      <textarea id="sf-note" rows="2" maxlength="500" placeholder="Optional">${existing ? esc(existing.note) : ''}</textarea>
+    </div>
+    <div class="modal-btns">
+      ${existing ? `<button type="button" class="mbtn danger" onclick="deleteSession('${escAttr(existing.id)}')">Delete</button>` : ''}
+      <button type="button" class="mbtn secondary" onclick="closeModal()">Cancel</button>
+      <button type="button" class="mbtn primary" onclick="saveSessionForm()">Save</button>
+    </div>`);
+  sfSync();
+}
+
+/*  The ONE place the form's selection state reaches the page: every button's
+    class and its aria-pressed are set together, here, and nowhere else.    */
+function sfSync() {
+  const box = document.getElementById('modal-box');
+  if (!box || !_sf) return;
+  const mark = (b, on, cls) => { b.classList.toggle(cls, on); b.setAttribute('aria-pressed', String(on)); };
+  box.querySelectorAll('[data-sf-type]').forEach(b => mark(b, b.dataset.sfType === _sf.type, 'active'));
+  box.querySelectorAll('[data-sf-status]').forEach(b => mark(b, b.dataset.sfStatus === _sf.status, 'active'));
+  box.querySelectorAll('[data-sf-rpe]').forEach(b => mark(b, Number(b.dataset.sfRpe) === _sf.rpe, 'on'));
+  box.querySelectorAll('[data-sf-felt]').forEach(b => {
+    const n = Number(b.dataset.sfFelt), on = n === _sf.felt;
+    b.className = 'dot' + (on ? ' s' + n : '');
+    b.setAttribute('aria-pressed', String(on));
   });
+  document.getElementById('sf-km-field').classList.toggle('hidden', !DISTANCE_TYPES.includes(_sf.type));
+  document.getElementById('sf-rate').classList.toggle('hidden', _sf.status !== 'done');
+}
+
+// Ratings toggle: tapping the chosen value again clears it, as on Check-in.
+function sfSet(field, value) {
+  if (!_sf) return;
+  if (field === 'rpe' || field === 'felt') _sf[field] = _sf[field] === value ? null : value;
+  else _sf[field] = value;
+  if (field === 'status') _sf.statusAuto = false;
+  sfSync();
+}
+
+// Until a status is picked by hand, it follows the date: planned for a
+// future day, done otherwise.
+function sfDateChanged() {
+  if (!_sf || !_sf.statusAuto) return;
+  const d = document.getElementById('sf-date').value;
+  if (isKey(d)) { _sf.status = d > todayKey() ? 'planned' : 'done'; sfSync(); }
+}
+
+function saveSessionForm() {
+  if (!_sf) return;
+  const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const existing = _sf.id ? getSessions().find(s => s.id === _sf.id) : null;
+  if (_sf.id && !existing) { closeModal(); return; }
+  const r = sessionFromForm({
+    type: _sf.type, status: _sf.status, rpe: _sf.rpe, felt: _sf.felt,
+    date: val('sf-date'), minutes: val('sf-min'), km: val('sf-km'), note: val('sf-note')
+  }, existing);
+  if (r.error) { toast(r.error, { type: 'error' }); return; }
+
+  if (existing) {
+    const before = clone(existing);
+    Object.assign(existing, r.session);
+    saveDB(); closeModal(); refreshSessions();
+    undoToast(`Updated ${describeSession(existing)}.`, () => {
+      const s = getSessions().find(x => x.id === before.id);
+      if (s) { Object.assign(s, before); saveDB(); refreshSessions(); }
+    });
+  } else {
+    getSessions().push(r.session);
+    saveDB(); closeModal(); refreshSessions();
+    const when = r.session.status === 'planned' ? 'Planned' : 'Logged';
+    undoToast(`${when} ${describeSession(r.session)} on ${fmtKey(r.session.date)}.`, () => {
+      const restore = discardSession(r.session.id);
+      if (restore) { saveDB(); refreshSessions(); }
+    });
+  }
+  _sf = null;
+}
+
+function deleteSession(id) {
+  const s = getSessions().find(x => x.id === id);
+  if (!s) return;
+  const label = describeSession(s);
+  const restore = discardSession(id);
+  if (!restore) return;
+  if (_sf && _sf.id === id) { closeModal(); _sf = null; }
+  saveDB(); refreshSessions();
+  undoToast(`Deleted ${label}.`, () => { restore(); saveDB(); refreshSessions(); });
 }
 
 function setRaceDate() {
@@ -3692,14 +4314,13 @@ function saveRaceDate() {
 // ═══════════════════════════════════════════════════════════════════════════
 function renderAll(){
   document.getElementById('today-date').textContent = parseKey(todayKey()).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const dateInp = document.getElementById('mar-date-inp');
-  if (dateInp) { dateInp.max = todayKey(); if (!dateInp.value) dateInp.value = todayKey(); }
-  updateStats(); renderFocus(); updateMarathon(); updateBackupBanner();
+  updateStats(); renderFocus(); updateMarathon(); updateTrainingNudge(); updateBackupBanner();
   const tab = activeTabId();
   if (tab === 'checkin') renderCheckin();
   else if (tab === 'progress') renderProgress();
   else if (tab === 'calendar') { renderCalendar(); renderOnePct(); }
   else if (tab === 'plan') renderPlan();
+  else if (tab === 'training') renderTraining();
   else renderCheckin();
 }
 
@@ -4065,7 +4686,7 @@ async function signOut() {
   /*  Only save if this session actually holds the user's data. Saving on the
       way out of a session that failed to load is how a fallback database gets
       written over a real one.                                               */
-  if (!Store.loadFailed) await Store.saveNow();
+  if (!Store.loadFailed && !Store.tooNew) await Store.saveNow();
   try { localStorage.removeItem(MIRROR_KEY); } catch (e) {}
   await sb.auth.signOut();
   location.reload();
@@ -4093,6 +4714,12 @@ async function startApp() {
   document.getElementById('gate').classList.add('hidden');
   DB = await Store.init();
   _currentDay = todayKey();
+  /*  Checked before rendering: the data is in a shape this copy does not know,
+      so drawing it could throw, and nothing here may write it.            */
+  if (Store.tooNew) {
+    document.getElementById('too-new').classList.remove('hidden');
+    return;
+  }
   renderAll();
   /*  If we got here without being able to read stored data, MOS is showing a
       blank default — say so plainly rather than letting it look like the
@@ -4142,7 +4769,14 @@ async function boot() {
   if (await needsSecondFactor()) showMfa();
   else await startApp();
 }
-boot();
+/*  A copy of MOS served under a file name containing "selftest" never
+    starts: no sign-in, no load, no save. It only runs MOS.test() and shows
+    the result, so the checks can run on a phone before a release with no
+    way to touch real data. It goes by the file name rather than a link
+    option, so opening that copy by mistake cannot start the app either.  */
+function isSelfTestPage(pathname) { return /selftest/i.test(String(pathname || '')); }
+const SELFTEST_ONLY = typeof location !== 'undefined' && isSelfTestPage(location.pathname);
+if (!SELFTEST_ONLY) boot();
 
 // ── Built-in self-test: run MOS.test() in the browser console ───────────────
 window.MOS = {
@@ -4189,10 +4823,10 @@ window.MOS = {
        Object.keys(cleanCheckin({ ratings: { f1: 9, f2: 2 } }).ratings).length === 1);
     ok('migrateDB stamps the schema version', migrateDB({ checkins: {}, focus: [], plan: [] }).db.version === SCHEMA_VERSION);
     ok('migrateDB survives garbage input', !!migrateDB('nonsense').db.checkins);
-    ok('marathon lives inside DB', !!DB.marathon && Array.isArray(DB.marathon.runs));
+    ok('marathon lives inside DB', !!DB.marathon && Array.isArray(DB.marathon.runs) && Array.isArray(DB.sessions));
 
     // ── v7: phases and archiving ──────────────────────────────────────────
-    ok('schema is v7', SCHEMA_VERSION === 7, String(SCHEMA_VERSION));
+    ok('schema is v8', SCHEMA_VERSION === 8, String(SCHEMA_VERSION));
     ok('every phase has a name', DB.plan.every(p => typeof p.name === 'string' && p.name.length > 0));
     ok('no phase kept the old label field', !DB.plan.some(p => 'label' in p));
     const _seq = phaseSequence();
@@ -4269,6 +4903,293 @@ window.MOS = {
          } finally { DB.focus = realFocus; }
        })());
 
+    // ── Training sessions (schema v8) ──────────────────────────────────────
+    /*  A minimal v7 document with three runs, built fresh for each check so
+        migrateDB's in-place edits never leak between them.                 */
+    const v7doc = () => ({
+      version: 7, checkins: {}, focus: [], plan: [],
+      countdown: defaultCountdown(),
+      marathon: { raceName: 'Test', raceDate: '2027-04-13', runs: [
+        { id: '_r1', km: 5, date: '2026-07-01' },
+        { id: '_r2', km: 10.5, date: '2026-07-03' },
+        { id: '_r3', km: 21.1, date: '2026-07-05' } ] }
+    });
+    const ids = list => list.map(s => s.id).sort().join(',');
+    // Runs the helpers against a scratch session list, restored afterwards.
+    const withSessions = (list, fn) => {
+      const real = DB.sessions;
+      try { DB.sessions = list; return fn(); } finally { DB.sessions = real; }
+    };
+    const future = shiftKey(todayKey(), 5);
+
+    ok('cleanSession clamps type, date, minutes, rpe, felt and status', (() => {
+      const a = cleanSession({ type: 'kayak', date: '2026-02-30', minutes: 900, rpe: 11, felt: 4, status: 'maybe' });
+      const b = cleanSession({ type: 'gym', date: '2026-07-01', minutes: '45.4', rpe: 0, felt: 3, status: 'skipped' });
+      const c = cleanSession({ type: 'run', date: future });
+      return a.type === 'other' && a.date === todayKey() && a.minutes === null && a.rpe === null &&
+             a.felt === null && a.status === 'done' &&
+             b.minutes === 45 && b.rpe === 0 && b.felt === 3 && b.status === 'skipped' &&
+             c.status === 'planned' && cleanSession('nonsense') === null;
+    })());
+    ok('cleanSession keeps km only for run, swim and cycle', (() => {
+      const kept = ['run', 'swim', 'cycle'].every(t => cleanSession({ type: t, km: 12.345 }).km === 12.35);
+      const dropped = ['gym', 'rehab', 'mobility', 'other'].every(t => cleanSession({ type: t, km: 12 }).km === null);
+      return kept && dropped && cleanSession({ type: 'run', km: 0 }).km === null;
+    })());
+    ok('migration turns runs into done run sessions, keeping id, date and km', (() => {
+      const db = migrateDB(v7doc()).db;
+      const r2 = db.sessions.find(s => s.id === '_r2');
+      return db.sessions.length === 3 && r2 && r2.type === 'run' && r2.status === 'done' &&
+             r2.date === '2026-07-03' && r2.km === 10.5 && r2.source === 'migrated' &&
+             r2.minutes === null && r2.rpe === null;
+    })());
+    ok('migration is idempotent — twice gives the same sessions', (() => {
+      const once = migrateDB(v7doc()).db;
+      const before = JSON.stringify(once.sessions);
+      const twice = migrateDB(once).db;
+      return JSON.stringify(twice.sessions) === before;
+    })());
+    ok('a run added after migration is picked up once', (() => {
+      const db = migrateDB(v7doc()).db;
+      db.version = 7;  // what a cached v7 phone does when it saves
+      db.marathon.runs.push({ id: '_r4', km: 8, date: '2026-07-07' });
+      migrateDB(db); migrateDB(db);
+      return db.sessions.length === 4 && db.sessions.filter(s => s.id === '_r4').length === 1;
+    })());
+    ok('a run with no stored id migrates exactly once', (() => {
+      const doc = v7doc();
+      doc.marathon.runs.push({ km: 3, date: '2026-07-09' });
+      const first = migrateDB(doc);
+      migrateDB(first.db);
+      return first.changed && first.db.sessions.length === 4;
+    })());
+    ok('marathon.runs is untouched by migration', (() => {
+      const doc = v7doc();
+      const before = JSON.stringify(doc.marathon.runs);
+      return JSON.stringify(migrateDB(doc).db.marathon.runs) === before;
+    })());
+    ok('a deleted migrated session stays deleted after a re-run', (() => {
+      const db = migrateDB(v7doc()).db;
+      return withSessions(db.sessions, () => {
+        discardSession('_r1');
+        migrateDB(db);
+        return db.sessions.length === 3 && db.sessions.find(s => s.id === '_r1').dismissed &&
+               !visibleSessions().some(s => s.id === '_r1');
+      });
+    })());
+    ok('a hand-entered session is truly removed, and undo restores it', (() => {
+      const s = cleanSession({ id: '_m1', type: 'gym', minutes: 30 });
+      return withSessions([s], () => {
+        const undo = discardSession('_m1');
+        const gone = getSessions().length === 0;
+        undo();
+        return gone && getSessions().length === 1 && getSessions()[0].id === '_m1';
+      });
+    })());
+    ok('sessionLoad is null without RPE or minutes, and for planned sessions', (() => {
+      const base = { status: 'done', rpe: 6, minutes: 40 };
+      return sessionLoad(base) === 240 &&
+             sessionLoad({ ...base, rpe: null }) === null &&
+             sessionLoad({ ...base, minutes: null }) === null &&
+             sessionLoad({ ...base, status: 'planned' }) === null &&
+             sessionLoad({ ...base, rpe: 0 }) === 0;
+    })());
+    ok('weekLoad sums Monday–Sunday and counts sessions it left out', (() => {
+      // 2026-07-06 is a Monday.
+      const list = [
+        cleanSession({ id: 'a', type: 'run',   date: '2026-07-06', status: 'done', minutes: 30, rpe: 5 }),
+        cleanSession({ id: 'b', type: 'rehab', date: '2026-07-12', status: 'done', minutes: 20, rpe: 3 }),
+        cleanSession({ id: 'c', type: 'run',   date: '2026-07-08', status: 'done', km: 5 }),
+        cleanSession({ id: 'd', type: 'gym',   date: '2026-07-13', status: 'done', minutes: 60, rpe: 8 }),
+        cleanSession({ id: 'e', type: 'gym',   date: '2026-07-09', status: 'planned', minutes: 60, rpe: 8 })
+      ];
+      const w = withSessions(list, () => weekLoad('2026-07-06'));
+      return w.load === 210 && w.excluded === 1;
+    })());
+    ok('runKm ignores cycling and swimming distance', withSessions([
+      cleanSession({ type: 'run',   date: '2026-07-06', status: 'done', km: 5 }),
+      cleanSession({ type: 'cycle', date: '2026-07-06', status: 'done', km: 20 }),
+      cleanSession({ type: 'swim',  date: '2026-07-06', status: 'done', km: 1.5 }),
+      cleanSession({ type: 'run',   date: '2026-07-06', status: 'planned', km: 8 })
+    ], () => runKm(['2026-07-06']) === 5));
+    ok('sessionsOn skips dismissed sessions', withSessions([
+      cleanSession({ id: 'p', date: '2026-07-06', type: 'run' }),
+      cleanSession({ id: 'q', date: '2026-07-06', type: 'run', dismissed: true })
+    ], () => ids(sessionsOn('2026-07-06')) === 'p'));
+    ok('a document from a newer version is left untouched', (() => {
+      const doc = { version: SCHEMA_VERSION + 1, checkins: {}, focus: [], plan: [], somethingNew: 1 };
+      const r = migrateDB(doc);
+      return r.tooNew === true && r.changed === false && r.db.version === SCHEMA_VERSION + 1 &&
+             !('sessions' in r.db) && !('marathon' in r.db);
+    })());
+    ok('a document from a newer version blocks writes', (() => {
+      /*  A throwaway store around a fake adapter that only counts saves.
+          The guards run before flush() first awaits, so the count is
+          final by the time these calls return.                         */
+      let saves = 0;
+      const fake = { name: 'test', load: async () => null, save: async () => { saves++; } };
+      const newer = makeStore(fake);
+      newer.settle({ version: SCHEMA_VERSION + 1, checkins: {}, focus: [], plan: [] }, false);
+      newer.save(); newer.saveNow(); newer.retry();
+      const blocked = newer.tooNew && saves === 0;
+      // Control: the same store type with current data does write.
+      const current = makeStore(fake);
+      current.settle(v7doc(), false);
+      return blocked && !current.tooNew && saves === 1;
+    })());
+
+    // ── Session form logic (step 2) ────────────────────────────────────────
+    const past = shiftKey(todayKey(), -2);
+    ok('the form builds a hand-entered session and drops km for gym', (() => {
+      const r = sessionFromForm({ type: 'gym', status: 'done', date: past, minutes: '45', km: '5', rpe: 7, felt: 3, note: ' legs ' });
+      const s = r.session;
+      return s && s.source === 'manual' && s.type === 'gym' && s.minutes === 45 && s.km === null &&
+             s.rpe === 7 && s.felt === 3 && s.note === 'legs' && s.status === 'done';
+    })());
+    ok('the form clears effort and feel unless the session is done', (() => {
+      const planned = sessionFromForm({ type: 'run', status: 'planned', date: future, minutes: '30', km: '6', rpe: 4, felt: 2 }).session;
+      const skipped = sessionFromForm({ type: 'rehab', status: 'skipped', date: past, rpe: 4, felt: 2 }).session;
+      return planned.rpe === null && planned.felt === null && planned.km === 6 &&
+             skipped.rpe === null && skipped.felt === null;
+    })());
+    ok('the form refuses a future session marked done or skipped', (() => {
+      return !!sessionFromForm({ type: 'run', status: 'done', date: future }).error &&
+             !!sessionFromForm({ type: 'run', status: 'skipped', date: future }).error &&
+             !!sessionFromForm({ type: 'run', status: 'planned', date: future }).session;
+    })());
+    ok('the form refuses bad minutes, distance and dates instead of dropping them', (() => {
+      return !!sessionFromForm({ type: 'run', status: 'done', date: past, minutes: '0' }).error &&
+             !!sessionFromForm({ type: 'run', status: 'done', date: past, minutes: '601' }).error &&
+             !!sessionFromForm({ type: 'run', status: 'done', date: past, km: '-3' }).error &&
+             !!sessionFromForm({ type: 'run', status: 'done', date: '2026-02-30' }).error &&
+             // A distance typed for a non-distance type is ignored, not an error.
+             !!sessionFromForm({ type: 'gym', status: 'done', date: past, km: '-3' }).session;
+    })());
+    ok('editing keeps id, source, externalId and dismissed', (() => {
+      const old = cleanSession({ id: '_e1', type: 'run', date: past, status: 'done', km: 5, source: 'migrated', externalId: 'ext9' });
+      const s = sessionFromForm({ type: 'run', status: 'done', date: past, minutes: '28', km: '5', rpe: 5, felt: 2 }, old).session;
+      return s.id === '_e1' && s.source === 'migrated' && s.externalId === 'ext9' && s.dismissed === false &&
+             s.minutes === 28 && s.rpe === 5;
+    })());
+    ok('running figures from migrated sessions match the old run figures', (() => {
+      const doc = v7doc();
+      doc.marathon.runs.push({ id: '_rw', km: 7.5, date: shiftKey(todayKey(), -1) });
+      // Last Sunday: inside "the last 7 days" most days, never inside this week.
+      doc.marathon.runs.push({ id: '_rs', km: 3, date: shiftKey(weekStartKey(todayKey()), -1) });
+      const db = migrateDB(doc).db;
+      const runs = db.marathon.runs;
+      const oldTotal = Math.round(runs.reduce((a, r) => a + r.km, 0) * 100) / 100;
+      const oldLongest = Math.max(...runs.map(r => r.km));
+      const oldWeek = runs.filter(r => thisWeekKeys().includes(r.date)).reduce((a, r) => a + r.km, 0);
+      const extra = [
+        cleanSession({ type: 'cycle', date: todayKey(), status: 'done', km: 40 }),
+        cleanSession({ type: 'run', date: future, status: 'planned', km: 30 })
+      ];
+      return withSessions(db.sessions.concat(extra), () => {
+        const k = runStats();
+        return k.total === oldTotal && k.longest === oldLongest && k.week === oldWeek;
+      });
+    })());
+
+    // ── Training tab (step 3) ──────────────────────────────────────────────
+    ok('week starts on Monday, across month end, year end and the clock change',
+       weekStartKey('2026-10-25') === '2026-10-19' &&   // Sunday, clocks go back
+       weekStartKey('2026-10-26') === '2026-10-26' &&   // a Monday is its own start
+       weekStartKey('2026-11-01') === '2026-10-26' &&   // Sunday across month end
+       weekStartKey('2027-01-01') === '2026-12-28',     // Friday across year end
+       weekStartKey('2026-10-25'));
+    ok('loadWeeks gives 8 weeks ending with this one, counting only done sessions', (() => {
+      const mon = weekStartKey(todayKey());
+      const prev = shiftKey(mon, -7);
+      const list = [
+        cleanSession({ type: 'rehab', date: mon,  status: 'done',    minutes: 30, rpe: 4 }),   // 120 this week
+        cleanSession({ type: 'run',   date: prev, status: 'done',    minutes: 50, rpe: 6 }),   // 300 last week
+        cleanSession({ type: 'run',   date: prev, status: 'done',    km: 5 }),                 // not counted
+        cleanSession({ type: 'gym',   date: prev, status: 'skipped', minutes: 60, rpe: 8 }),   // never load
+        cleanSession({ type: 'gym',   date: mon,  status: 'done',    minutes: 60, rpe: 8, dismissed: true })
+      ];
+      const w = withSessions(list, () => loadWeeks(8));
+      const last = w[7], before = w[6];
+      return w.length === 8 && last.current && last.monday === mon && !w[0].current &&
+             w[0].monday === shiftKey(mon, -49) &&
+             last.load === 120 && last.excluded === 0 && before.load === 300 && before.excluded === 1;
+    })());
+    ok('every visible session lands in exactly one Training list', (() => {
+      const t = todayKey();
+      const list = [
+        cleanSession({ id: 'up1',  date: t,                status: 'planned' }),
+        cleanSession({ id: 'up2',  date: shiftKey(t, 3),   status: 'planned' }),
+        cleanSession({ id: 'od2',  date: shiftKey(t, -1),  status: 'planned' }),
+        cleanSession({ id: 'od1',  date: shiftKey(t, -4),  status: 'planned' }),
+        cleanSession({ id: 'h1',   date: shiftKey(t, -2),  status: 'done' }),
+        cleanSession({ id: 'h2',   date: shiftKey(t, -1),  status: 'skipped' }),
+        cleanSession({ id: 'gone', date: shiftKey(t, -1),  status: 'planned', dismissed: true })
+      ];
+      return withSessions(list, () => {
+        const up = upcomingSessions().map(s => s.id).join(',');
+        const od = overdueSessions().map(s => s.id).join(',');
+        const hi = historySessions().map(s => s.id).join(',');
+        return up === 'up1,up2' && od === 'od1,od2' && hi === 'h2,h1' &&
+               upcomingSessions().length + overdueSessions().length + historySessions().length === 6;
+      });
+    })());
+    ok('resolving a session: future refused, ratings cleared unless done, undo restores', (() => {
+      const t = todayKey();
+      const list = [
+        cleanSession({ id: 'p', date: shiftKey(t, -1), status: 'planned', minutes: 40 }),
+        cleanSession({ id: 'f', date: shiftKey(t, 2),  status: 'planned' }),
+        cleanSession({ id: 'd', date: shiftKey(t, -1), status: 'done', minutes: 30, rpe: 6, felt: 3 })
+      ];
+      return withSessions(list, () => {
+        const refused = setSessionStatus('f', 'done') === null && getSessions()[1].status === 'planned';
+        const done = setSessionStatus('p', 'done');
+        const ok1 = getSessions()[0].status === 'done';
+        done();
+        const undone = getSessions()[0].status === 'planned';
+        const skip = setSessionStatus('d', 'skipped');
+        const cleared = getSessions()[2].rpe === null && getSessions()[2].felt === null;
+        skip();
+        const restored = getSessions()[2].status === 'done' && getSessions()[2].rpe === 6 && getSessions()[2].felt === 3;
+        return refused && ok1 && undone && cleared && restored;
+      });
+    })());
+
+    // ── Overview card and check-in nudge (step 4) ──────────────────────────
+    ok('the week card counts only done sessions in this Monday–Sunday week', (() => {
+      const mon = weekStartKey(todayKey());
+      const list = [
+        cleanSession({ type: 'rehab', date: mon,               status: 'done',    minutes: 30, rpe: 4 }),
+        cleanSession({ type: 'run',   date: mon,               status: 'done',    minutes: 40, km: 6 }),          // no effort
+        cleanSession({ type: 'cycle', date: mon,               status: 'done',    minutes: 60, rpe: 5, km: 25 }),
+        cleanSession({ type: 'gym',   date: mon,               status: 'skipped', minutes: 45, rpe: 7 }),
+        cleanSession({ type: 'run',   date: shiftKey(mon, -1), status: 'done',    minutes: 50, rpe: 6, km: 9 }),   // last Sunday
+        cleanSession({ type: 'gym',   date: mon,               status: 'done',    minutes: 45, rpe: 7, dismissed: true })
+      ];
+      return withSessions(list, () => {
+        const w = trainingWeek(), wl = weekLoad(mon);
+        return w.sessions === 3 && w.minutes === 130 && w.load === 420 && w.load === wl.load &&
+               w.excluded === 1 && w.excluded === wl.excluded && w.km === 6 &&
+               thisWeekKeys().length === 7 && thisWeekKeys()[0] === mon;
+      });
+    })());
+    ok('the check-in nudge finds recent done sessions with no effort, newest first', (() => {
+      const t = todayKey();
+      const list = [
+        cleanSession({ id: 'u1',   date: shiftKey(t, -5), status: 'done', type: 'run', km: 5, source: 'migrated' }),
+        cleanSession({ id: 'u2',   date: shiftKey(t, -1), status: 'done', type: 'rehab', minutes: 20 }),
+        cleanSession({ id: 'old',  date: shiftKey(t, -8), status: 'done', type: 'gym' }),
+        cleanSession({ id: 'rtd',  date: shiftKey(t, -1), status: 'done', type: 'gym', rpe: 0 }),   // 0 is a rating
+        cleanSession({ id: 'pl',   date: shiftKey(t, -2), status: 'planned', type: 'run' }),
+        cleanSession({ id: 'gone', date: shiftKey(t, -2), status: 'done', type: 'run', dismissed: true })
+      ];
+      return withSessions(list, () => unratedRecent().map(s => s.id).join(',') === 'u2,u1');
+    })());
+
+    ok('only a page named selftest skips starting the app',
+       isSelfTestPage('/MyOwnStats/selftest.html') && isSelfTestPage('/selftest.html') &&
+       !isSelfTestPage('/MyOwnStats/MyOwnStats.html') && !isSelfTestPage('/MyOwnStats/') &&
+       !isSelfTestPage('') && !isSelfTestPage(undefined));
+
     // ── Store: what gets written on load ───────────────────────────────────
     /*  Throwaway stores around a fake adapter that records what it is given.
         The guards and the first save all run before flush() first awaits,
@@ -4308,6 +5229,25 @@ window.MOS = {
     return { passed: results.length - failed.length, failed: failed.length, results };
   }
 };
+
+function showSelfTestResults() {
+  const r = MOS.test();
+  const failed = r.results.filter(x => !x.pass);
+  let tz = 'unknown';
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || tz; } catch (e) {}
+  const box = document.createElement('div');
+  box.className = 'gate';
+  box.innerHTML = `<div class="gate-box">
+    <div class="gate-title">${failed.length ? 'Self-test failed' : 'Self-test passed'}</div>
+    <div class="gate-sub"><strong>${r.passed} of ${r.passed + r.failed} checks passed.</strong><br>
+      Schema v${SCHEMA_VERSION} · time zone ${esc(tz)} · today is ${esc(todayKey())}</div>
+    ${failed.length ? `<ul style="text-align:left;font-size:12px;color:var(--muted);line-height:1.6;margin:10px 0 0 18px">
+      ${failed.map(f => `<li>${esc(f.name)}${f.detail ? ' → ' + esc(f.detail) : ''}</li>`).join('')}</ul>` : ''}
+    <div class="gate-foot">This page only runs MOS's built-in checks. It never signs in, loads or saves anything.</div>
+  </div>`;
+  document.body.appendChild(box);
+}
+if (SELFTEST_ONLY) showSelfTestResults();
 </script>
 </body>
 </html>
